@@ -22,8 +22,8 @@ namespace AngleSharp.Dom
 
         public Range(IDocument document)
         {
-            _start = new Boundary(document, 0);
-            _end = new Boundary(document, 0);
+            _start = new Boundary(document, 0, false);
+            _end = new Boundary(document, 0, false);
         }
 
         private Range(Boundary start, Boundary end)
@@ -56,7 +56,7 @@ namespace AngleSharp.Dom
             {
                 var container = Head;
 
-                while (container != null && !Tail.Contains(container))
+                while (container != null && !container.IsInclusiveAncestorOf(Tail))
                 {
                     container = container.Parent;
                 }
@@ -81,17 +81,25 @@ namespace AngleSharp.Dom
                 throw new DomException(DomError.InvalidNodeType);
             }
 
-            if (offset > refNode.ChildNodes.Length)
+            if (offset < 0)
+            {
+                throw new DomException(DomError.IndexSizeError);
+            }
+
+            var length = GetNodeLength(refNode);
+
+            if (offset > length)
             {
                 throw new DomException(DomError.IndexSizeError);
             }
 
             var bp = new Boundary(refNode, offset);
 
-            if (bp > _end || Root != refNode.GetRoot())
+            if (!_end.IsExplicit || Root != refNode.GetRoot() || bp > _end)
             {
-                _start = bp;
+                _end = bp;
             }
+            _start = bp;
         }
 
         public void EndWith(INode refNode, Int32 offset)
@@ -106,17 +114,25 @@ namespace AngleSharp.Dom
                 throw new DomException(DomError.InvalidNodeType);
             }
 
-            if (offset > refNode.ChildNodes.Length)
+            if (offset < 0)
+            {
+                throw new DomException(DomError.IndexSizeError);
+            }
+
+            var length = GetNodeLength(refNode);
+
+            if (offset >length)
             {
                 throw new DomException(DomError.IndexSizeError);
             }
 
             var bp = new Boundary(refNode, offset);
 
-            if (bp < _start || Root != refNode.GetRoot())
+            if (!_start.IsExplicit || Root != refNode.GetRoot() || bp < _start)
             {
-                _end = bp;
+                _start = bp;
             }
+            _end = bp;
         }
 
         public void StartBefore(INode refNode)
@@ -134,6 +150,11 @@ namespace AngleSharp.Dom
             }
 
             _start = new Boundary(parent, parent.ChildNodes.Index(refNode));
+
+            if (!_end.IsExplicit)
+            {
+                _end = _start;
+            }
         }
 
         public void EndBefore(INode refNode)
@@ -151,6 +172,11 @@ namespace AngleSharp.Dom
             }
 
             _end = new Boundary(parent, parent.ChildNodes.Index(refNode));
+
+            if (!_start.IsExplicit)
+            {
+                _start = _end;
+            }
         }
 
         public void StartAfter(INode refNode)
@@ -168,6 +194,11 @@ namespace AngleSharp.Dom
             }
 
             _start = new Boundary(parent, parent.ChildNodes.Index(refNode) + 1);
+
+            if (!_end.IsExplicit)
+            {
+                _end = _start;
+            }
         }
 
         public void EndAfter(INode refNode)
@@ -185,6 +216,11 @@ namespace AngleSharp.Dom
             }
 
             _end = new Boundary(parent, parent.ChildNodes.Index(refNode) + 1);
+
+            if (!_start.IsExplicit)
+            {
+                _start = _end;
+            }
         }
 
         public void Collapse(Boolean toStart)
@@ -252,18 +288,18 @@ namespace AngleSharp.Dom
                 }
                 else
                 {
-                    var nodesToRemove = Nodes.Where(m => !Intersects(m.Parent!)).ToArray();
+                    var nodesToRemove = CommonAncestor.GetNodes<INode>(predicate: (node)=>Contains(node,0)).Where(m => !Contains(m.Parent!, 0)).ToArray();
 
                     if (!originalStart.Node.IsInclusiveAncestorOf(originalEnd.Node))
                     {
                         var referenceNode = originalStart.Node;
 
-                        while (referenceNode.Parent != null && referenceNode.Parent.IsInclusiveAncestorOf(originalEnd.Node))
+                        while (referenceNode.Parent != null && !referenceNode.Parent.IsInclusiveAncestorOf(originalEnd.Node))
                         {
                             referenceNode = referenceNode.Parent;
                         }
 
-                        newBoundary = new Boundary(referenceNode.Parent!, referenceNode.Parent!.ChildNodes.Index(referenceNode) + 1);
+                        newBoundary = new Boundary(referenceNode.Parent!, referenceNode.Index() + 1);
                     }
                     else
                     {
@@ -274,7 +310,7 @@ namespace AngleSharp.Dom
                     {
                         var strt = originalStart.Offset;
                         var text = (ICharacterData)originalStart.Node;
-                        var span = originalEnd.Offset - originalStart.Offset;
+                        var span = text.Data.Length - originalStart.Offset;
                         text.Replace(strt, span, String.Empty);
                     }
 
@@ -582,8 +618,8 @@ namespace AngleSharp.Dom
                 {
                     throw new DomException(DomError.IndexSizeError);
                 }
-
-                return !IsStartAfter(node, offset) && !IsEndBefore(node, offset);
+                var length = node is IDocumentType || node is IAttr ? 0 : (node is ICharacterData charData ? charData.Data.Length : node.ChildNodes.Length);
+                return new Boundary(node, offset) > _start && new Boundary(node, length) < _end;
             }
 
             return false;
@@ -681,7 +717,7 @@ namespace AngleSharp.Dom
                 if (parent != null)
                 {
                     var offset = parent.ChildNodes.Index(node);
-                    return IsEndAfter(parent, offset) && IsStartBefore(parent, offset + 1);
+                    return new Boundary(parent, offset) < _end && new Boundary(parent, offset + 1) > _start;
                 }
 
                 return true;
@@ -712,7 +748,7 @@ namespace AngleSharp.Dom
 
             sb ??= StringBuilderPool.Obtain();
 
-            var nodes = CommonAncestor.Descendents<IText>();
+            var nodes = CommonAncestor.Descendants<IText>();
 
             foreach (var node in nodes)
             {
@@ -733,6 +769,21 @@ namespace AngleSharp.Dom
         #endregion
 
         #region Helpers
+
+        private static Int32 GetNodeLength(INode node)
+        {
+            if (node is IDocumentType || node is IAttr)
+            {
+                return 0;
+            }
+
+            if (node is ICharacterData text)
+            {
+                return text.Data.Length;
+            }
+
+            return node.ChildNodes.Length;
+        }
 
         private Boolean IsStartBefore(INode node, Int32 offset)
         {
@@ -768,47 +819,127 @@ namespace AngleSharp.Dom
 
         private readonly struct Boundary : IEquatable<Boundary>
         {
-            public Boundary(INode node, Int32 offset)
+            public Boundary(INode node, Int32 offset, Boolean given = true)
             {
                 Node = node;
                 Offset = offset;
+                IsExplicit = given;
             }
 
             public readonly INode Node;
             public readonly Int32 Offset;
+            public readonly Boolean IsExplicit;
 
             public static Boolean operator >(Boundary a, Boundary b)
             {
-                return false;
+                return a.CompareTo(b) == RangePosition.After;
             }
-
             public static Boolean operator <(Boundary a, Boundary b)
             {
+                return a.CompareTo(b) == RangePosition.Before;
+            }
+            public static Boolean operator ==(Boundary a, Boundary b)
+            {
+                return a.CompareTo(b) == RangePosition.Equal;
+            }
+            public static Boolean operator !=(Boundary a, Boundary b)
+            {
+                return a.CompareTo(b) != RangePosition.Equal;
+            }
+            public static Boolean operator <=(Boundary a, Boundary b)
+            {
+                switch(a.CompareTo(b))
+                {
+                    case RangePosition.Before:
+                        return true;
+                    case RangePosition.Equal:
+                        return true;
+                }
                 return false;
             }
-
+            public static Boolean operator >=(Boundary a, Boundary b)
+            {
+                switch (a.CompareTo(b))
+                {
+                    case RangePosition.After:
+                        return true;
+                    case RangePosition.Equal:
+                        return true;
+                }
+                return false;
+            }
             public Boolean Equals(Boundary other)
             {
-                return Node == other.Node && Offset == other.Offset;
+                return CompareTo(other) == RangePosition.Equal;
             }
 
             public RangePosition CompareTo(Boundary other)
             {
-                if (this < other)
+                if (Node.GetRoot() != other.Node.GetRoot())
                 {
-                    return RangePosition.Before;
+                    throw new DomException(DomError.InvalidAccess);
                 }
-                else if (this > other)
+                if (Node == other.Node)
                 {
-                    return RangePosition.After;
+                    if (Offset < other.Offset)
+                    {
+                        return RangePosition.Before;
+                    }
+                    else if (Offset == other.Offset)
+                    {
+                        return RangePosition.Equal;
+                    }
+                    else if (Offset > other.Offset)
+                    {
+                        return RangePosition.After;
+                    }
                 }
-                else
+                if (Node.IsFollowing(other.Node))
                 {
-                    return RangePosition.Equal;
+                    var position = other.CompareTo(this);
+                    if (position == RangePosition.Before)
+                    {
+                        return RangePosition.After;
+                    }
+                    else if (position == RangePosition.After)
+                    {
+                        return RangePosition.Before;
+                    }
                 }
+                if (Node.IsAncestorOf(other.Node))
+                {
+                    var child = other.Node;
+                    while (child != null && child.Parent != Node)
+                    {
+                        child = child.Parent;
+                    }
+                    if (child != null && child.Index() < Offset)
+                    {
+                        return RangePosition.After;
+                    }
+                }
+
+                return RangePosition.Before;
             }
 
             public INode? ChildAtOffset => Node.ChildNodes.Length > Offset ? Node.ChildNodes[Offset] : null;
+
+            public override Boolean Equals(Object? obj)
+            {
+                return obj is Boundary && Equals((Boundary)obj);
+            }
+
+            public override Int32 GetHashCode()
+            {
+                unchecked
+                {
+                    var hash = 17;
+                    hash = hash * 23 + Node.GetHashCode();
+                    hash = hash * 23 + Offset.GetHashCode();
+                    hash = hash * 23 + IsExplicit.GetHashCode();
+                    return hash;
+                }
+            }
         }
 
         #endregion

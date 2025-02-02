@@ -1,26 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net462;net472</TargetFrameworks>
     <IsPackable>false</IsPackable>
-    <LangVersion>9</LangVersion>
-    <AssemblyName>AngleSharp.Core.Tests</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies> <!-- https://github.com/Tyrrrz/GitHubActionsTestLogger/issues/5 -->
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AngleSharp\AngleSharp.Core.csproj">
-      <TargetFramework>netstandard2.0</TargetFramework>
-    </ProjectReference>
+    <ProjectReference Include="..\AngleSharp\AngleSharp.Core.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GitHubActionsTestLogger" Version="1.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NUnit" Version="3.13.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.1.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" PrivateAssets="all" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="Microsoft.Net.Http" Version="2.2.29" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,5 +37,9 @@
 
   <ItemGroup>
     <None Remove="Html\BrokenMail.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

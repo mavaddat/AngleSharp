@@ -25,13 +25,13 @@ var source = @"
   <p>The requested URL <code>/error</code> was not found on this server.  <ins>That’s all we know.</ins>";
 
 //Use the default configuration for AngleSharp
-var config = Configuration.Default;
+IConfiguration config = Configuration.Default;
 
 //Create a new context for evaluating webpages with the given config
-var context = BrowsingContext.New(config);
+IBrowsingContext context = BrowsingContext.New(config);
 
 //Just get the DOM representation
-var document = await context.OpenAsync(req => req.Content(source));
+IDocument document = await context.OpenAsync(req => req.Content(source));
 
 //Serialize it back to the console
 Console.WriteLine(document.DocumentElement.OuterHtml);
@@ -39,7 +39,7 @@ Console.WriteLine(document.DocumentElement.OuterHtml);
 
 So we define some source code, call the `OpenAsync` method of a an `BrowsingContext` instance. The `OpenAsync` method allows us to parse documents from any kind of requests, e.g., from a webserver. The callback style is called a "virtual request", which does not invoke a real request, but stays within our code.
 
-In this case we use the provided source code to determine the content of the request's response. This content of the response is then parsed into an HTML document. Afterwards we serialize the DOM back to a string. Finally we output this string in the console.
+In this case we use the provided source code to determine the content of the request's response. This content of the response is then parsed into an HTML document. Afterwards we serialize the DOM back to a string. Finally, we output this string in the console.
 
 ## Simple Document Manipulation
 
@@ -49,19 +49,19 @@ AngleSharp constructs a DOM according to the official HTML5 specification. This 
 static async Task FirstExample()
 {
     //Use the default configuration for AngleSharp
-    var config = Configuration.Default;
+    IConfiguration config = Configuration.Default;
 
     //Create a new context for evaluating webpages with the given config
-    var context = BrowsingContext.New(config);
+    IBrowsingContext context = BrowsingContext.New(config);
 
     //Parse the document from the content of a response to a virtual request
-    var document = await context.OpenAsync(req => req.Content("<h1>Some example source</h1><p>This is a paragraph element"));
+    IDocument document = await context.OpenAsync(req => req.Content("<h1>Some example source</h1><p>This is a paragraph element"));
 
     //Do something with document like the following
     Console.WriteLine("Serializing the (original) document:");
     Console.WriteLine(document.DocumentElement.OuterHtml);
 
-    var p = document.CreateElement("p");
+    IElement p = document.CreateElement("p");
     p.TextContent = "This is another paragraph.";
 
     Console.WriteLine("Inserting another element in the body ...");
@@ -82,16 +82,16 @@ AngleSharp exposes all DOM lists as `IEnumerable<T>` like `IEnumerable<Node>` fo
 static async Task UsingLinq()
 {
     //Create a new context for evaluating webpages with the default config
-    var context = BrowsingContext.New(Configuration.Default);
+    IBrowsingContext context = BrowsingContext.New(Configuration.Default);
 
     //Create a document from a virtual request / response pattern
-    var document = await context.OpenAsync(req => req.Content("<ul><li>First item<li>Second item<li class='blue'>Third item!<li class='blue red'>Last item!</ul>"));
+    IDocument document = await context.OpenAsync(req => req.Content("<ul><li>First item<li>Second item<li class='blue'>Third item!<li class='blue red'>Last item!</ul>"));
 
     //Do something with LINQ
-    var blueListItemsLinq = document.All.Where(m => m.LocalName == "li" && m.ClassList.Contains("blue"));
+    IEnumerable<IElement> blueListItemsLinq = document.All.Where(m => m.LocalName == "li" && m.ClassList.Contains("blue"));
 
     //Or directly with CSS selectors
-    var blueListItemsCssSelector = document.QuerySelectorAll("li.blue");
+    IHtmlCollection<IElement> blueListItemsCssSelector = document.QuerySelectorAll("li.blue");
 
     Console.WriteLine("Comparing both ways ...");
 
@@ -113,20 +113,20 @@ static async Task UsingLinq()
 }
 ```
 
-Since the `All` property of an `IDocument` returns all `IElement` nodes that are contained in a document, we can use it very efficiently with LINQ. On the other hand the `QuerySelectorAll` also returns (same as `All`) an `IHtmlCollection` object. Hence this can be filtered with LINQ as well! Additionally this list is already filtered.
+Since the `All` property of an `IDocument` returns all `IElement` nodes that are contained in a document, we can use it very efficiently with LINQ. On the other hand the `QuerySelectorAll` also returns (same as `All`) an `IHtmlCollection` object. Hence, this can be filtered with LINQ as well! Additionally, this list is already filtered.
 
 It is also possible to get the same as `All` with a selector - the special asterisk `*` selector:
 
 ```C#
 //Same as document.All
-var blueListItemsLinq = document.QuerySelectorAll("*").Where(m => m.LocalName == "li" && m.ClassList.Contains("blue"));
+IEnumerable<IElement> blueListItemsLinq = document.QuerySelectorAll("*").Where(m => m.LocalName == "li" && m.ClassList.Contains("blue"));
 ```
 
-Is this exactly the same? Actually no - `All` returns a so called _live_ DOM list, i.e. if we save the object somewhere we will always have access to the latest DOM changes.
+Is this exactly the same? Actually no - `All` returns a so-called _live_ DOM list, i.e. if we save the object somewhere we will always have access to the latest DOM changes.
 
 ## Getting Single Elements
 
-Additionally we have the `QuerySelector` method. This one is quite close to LINQ statements that use `FirstOrDefault()` for generating results. The tree traversal might be a little bit more efficient using the `QuerySelector` method.
+Additionally, we have the `QuerySelector` method. This one is quite close to LINQ statements that use `FirstOrDefault()` for generating results. The tree traversal might be a bit more efficient using the `QuerySelector` method.
 
 Let's see some sample code:
 
@@ -134,12 +134,12 @@ Let's see some sample code:
 static async Task SingleElements()
 {
     //Create a new context for evaluating webpages with the default config
-    var context = BrowsingContext.New(Configuration.Default);
+    IBrowsingContext context = BrowsingContext.New(Configuration.Default);
 
     //Create a new document
-    var document = await context.OpenAsync(req => req.Content("<b><i>This is some <em> bold <u>and</u> italic </em> text!</i></b>"));
+    IDocument document = await context.OpenAsync(req => req.Content("<b><i>This is some <em> bold <u>and</u> italic </em> text!</i></b>"));
 
-    var emphasize = document.QuerySelector("em");
+    IElement emphasize = document.QuerySelector("em");
 
     Console.WriteLine("Difference between several ways of getting text:");
     Console.WriteLine();
@@ -173,23 +173,23 @@ Here is the full sample code.
 static async Task SimpleScriptingSample()
 {
     //We require a custom configuration
-    var config = Configuration.Default.WithJs();
+    IConfiguration config = Configuration.Default.WithJs();
 
     //Create a new context for evaluating webpages with the given config
-    var context = BrowsingContext.New(config);
+    IBrowsingContext context = BrowsingContext.New(config);
 
     //This is our sample source, we will set the title and write on the document
     var source = @"<!doctype html>
         <html>
-        <head><title>Sample</title></head>
+            <head><title>Sample</title></head>
         <body>
-        <script>
-        document.title = 'Simple manipulation...';
-        document.write('<span class=greeting>Hello World!</span>');
-        </script>
+            <script>
+                document.title = 'Simple manipulation...';
+                document.write('<span class=greeting>Hello World!</span>');
+            </script>
         </body>";
 
-    var document = await context.OpenAsync(req => req.Content(source));
+    IDocument document = await context.OpenAsync(req => req.Content(source));
 
     //Modified HTML will be output
     Console.WriteLine(document.DocumentElement.OuterHtml);
@@ -208,10 +208,10 @@ The following example code performs DOM queries, creates new elements and remove
 static async void ExtendedScriptingSample()
 {
     //We require a custom configuration with JavaScript and CSS
-    var config = Configuration.Default.WithJs().WithCss();
+    IConfiguration config = Configuration.Default.WithJs().WithCss();
 
     //Create a new context for evaluating webpages with the given config
-    var context = BrowsingContext.New(config);
+    IBrowsingContext context = BrowsingContext.New(config);
 
     //This is our sample source, we will do some DOM manipulation
     var source = @"<!doctype html>
@@ -219,37 +219,37 @@ static async void ExtendedScriptingSample()
         <head><title>Sample</title></head>
         <style>
         .bold {
-        font-weight: bold;
+          font-weight: bold;
         }
         .italic {
-        font-style: italic;
+          font-style: italic;
         }
         span {
-        font-size: 12pt;
+          font-size: 12pt;
         }
         div {
-        background: #777;
-        color: #f3f3f3;
+          background: #777;
+          color: #f3f3f3;
         }
         </style>
         <body>
         <div id=content></div>
         <script>
         (function() {
-        var doc = document;
-        var content = doc.querySelector('#content');
-        var span = doc.createElement('span');
-        span.id = 'myspan';
-        span.classList.add('bold', 'italic');
-        span.textContent = 'Some sample text';
-        content.appendChild(span);
-        var script = doc.querySelector('script');
-        script.parentNode.removeChild(script);
+          var doc = document;
+          var content = doc.querySelector('#content');
+          var span = doc.createElement('span');
+          span.id = 'myspan';
+          span.classList.add('bold', 'italic');
+          span.textContent = 'Some sample text';
+          content.appendChild(span);
+          var script = doc.querySelector('script');
+          script.parentNode.removeChild(script);
         })();
         </script>
         </body>";
 
-    var document = await context.OpenAsync(req => req.Content(source));
+    IDocument document = await context.OpenAsync(req => req.Content(source));
 
     //HTML will have changed completely (e.g., no more script element)
     Console.WriteLine(document.DocumentElement.OuterHtml);
@@ -270,10 +270,10 @@ The listener is called once the document is fully loaded. This happens after exe
 public static async void EventScriptingExample()
 {
     //We require a custom configuration
-    var config = Configuration.Default.WithJs();
+    IConfiguration config = Configuration.Default.WithJs();
 
     //Create a new context for evaluating webpages with the given config
-    var context = BrowsingContext.New(config);
+    IBrowsingContext context = BrowsingContext.New(config);
 
     //This is our sample source, we will trigger the load event
     var source = @"<!doctype html>
@@ -284,18 +284,18 @@ public static async void EventScriptingExample()
         console.log('Before setting the handler!');
 
         document.addEventListener('load', function() {
-        console.log('Document loaded!');
+          console.log('Document loaded!');
         });
 
         document.addEventListener('hello', function() {
-        console.log('hello world from JavaScript!');
+          console.log('hello world from JavaScript!');
         });
 
         console.log('After setting the handler!');
         </script>
         </body>";
 
-    var document = await context.OpenAsync(req => req.Content(source));
+    IDocument document = await context.OpenAsync(req => req.Content(source));
 
     //HTML should be output in the end
     Console.WriteLine(document.DocumentElement.OuterHtml);

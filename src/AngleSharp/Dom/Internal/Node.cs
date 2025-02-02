@@ -3,11 +3,15 @@ namespace AngleSharp.Dom
     using AngleSharp.Text;
     using System;
     using System.IO;
+    using Common;
+    using Html.Construction;
+    using Html.Parser.Tokens;
+    using Html.Parser.Tokens.Struct;
 
     /// <summary>
     /// Represents a node in the generated tree.
     /// </summary>
-    public abstract class Node : EventTarget, INode, IEquatable<INode>
+    public abstract class Node : EventTarget, INode, IEquatable<INode>, IConstructableNode
     {
         #region Fields
 
@@ -30,16 +34,13 @@ namespace AngleSharp.Dom
             _owner = owner;
             _name = name ?? String.Empty;
             _type = type;
-            _children = this.IsEndPoint() ? NodeList.Empty : new NodeList();
+            _children = this.IsEndPoint() ? NodeList.Empty : [];
             _flags = flags;
         }
 
         #endregion
 
         #region Public Properties
-
-        /// <inheritdoc />
-        public NodeFlags Flags => _flags;
 
         /// <inheritdoc />
         public Boolean HasChildNodes => _children.Length != 0;
@@ -52,15 +53,15 @@ namespace AngleSharp.Dom
         {
             get
             {
-                if (_baseUri != null)
+                if (_baseUri is not null)
                 {
                     return _baseUri;
                 }
-                else if (_parent != null)
+                else if (_parent is not null)
                 {
                     foreach (var ancestor in this.Ancestors<Node>())
                     {
-                        if (ancestor._baseUri != null)
+                        if (ancestor._baseUri is not null)
                         {
                             return ancestor._baseUri;
                         }
@@ -69,7 +70,7 @@ namespace AngleSharp.Dom
 
                 var document = Owner;
 
-                if (document != null)
+                if (document is not null)
                 {
                     return document._baseUri ?? document.DocumentUrl;
                 }
@@ -86,6 +87,9 @@ namespace AngleSharp.Dom
 
         /// <inheritdoc />
         public NodeType NodeType => _type;
+
+        /// <inheritdoc />
+        public NodeFlags Flags => _flags;
 
         /// <inheritdoc />
         public virtual String NodeValue
@@ -129,7 +133,7 @@ namespace AngleSharp.Dom
         {
             get
             {
-                if (_parent != null)
+                if (_parent is not null)
                 {
                     var n = _parent._children.Length;
 
@@ -150,7 +154,7 @@ namespace AngleSharp.Dom
         {
             get
             {
-                if (_parent != null)
+                if (_parent is not null)
                 {
                     var n = _parent._children.Length - 1;
 
@@ -196,15 +200,15 @@ namespace AngleSharp.Dom
             }
             set
             {
-                foreach (var descendentAndSelf in this.DescendentsAndSelf<Node>())
+                if (!Object.ReferenceEquals(Owner, value))
                 {
-                    var oldDocument = descendentAndSelf.Owner;
-
-                    if (!Object.ReferenceEquals(oldDocument, value))
+                    foreach (var descendantAndSelf in this.DescendantsAndSelf<Node>())
                     {
-                        descendentAndSelf._owner = value;
+                        var oldDocument = descendantAndSelf.Owner;
 
-                        if (oldDocument != null)
+                        descendantAndSelf._owner = value;
+
+                        if (oldDocument is not null)
                         {
                             NodeIsAdopted(oldDocument);
                         }
@@ -221,7 +225,7 @@ namespace AngleSharp.Dom
         {
             var document = Owner;
 
-            if (node != null)
+            if (node is not null)
             {
                 document.AdoptNode(node);
             }
@@ -231,7 +235,7 @@ namespace AngleSharp.Dom
 
             removedNodes.AddRange(_children);
 
-            if (node != null)
+            if (node is not null)
             {
                 if (node.NodeType == NodeType.DocumentFragment)
                 {
@@ -260,6 +264,8 @@ namespace AngleSharp.Dom
                     addedNodes: addedNodes,
                     removedNodes: removedNodes));
             }
+
+            ReplacedAll();
         }
 
         internal INode InsertBefore(Node newElement, Node? referenceElement, Boolean suppressObservers)
@@ -267,7 +273,7 @@ namespace AngleSharp.Dom
             var document = Owner;
             var count = newElement.NodeType == NodeType.DocumentFragment ? newElement.ChildNodes.Length : 1;
 
-            if (referenceElement != null && document != null)
+            if (referenceElement is not null && document is not null)
             {
                 var childIndex = referenceElement.Index();
                 foreach (var m in document.GetAttachedReferences<Range>())
@@ -324,7 +330,7 @@ namespace AngleSharp.Dom
                 NodeIsInserted(newElement);
             }
 
-            if (!suppressObservers && document != null)
+            if (!suppressObservers && document is not null)
             {
                 document.QueueMutation(MutationRecord.ChildList(
                     target: this,
@@ -341,7 +347,7 @@ namespace AngleSharp.Dom
             var document = Owner;
             var index = _children.Index(node);
 
-            if (document != null)
+            if (document is not null)
             {
                 foreach (var m in document.GetAttachedReferences<Range>())
                 {
@@ -366,7 +372,7 @@ namespace AngleSharp.Dom
 
             var oldPreviousSibling = index > 0 ? _children[index - 1] : null;
 
-            if (!suppressObservers && document != null)
+            if (!suppressObservers && document is not null)
             {
                 var removedNodes = new NodeList { node };
 
@@ -426,7 +432,7 @@ namespace AngleSharp.Dom
                     addedNodes.Add(node);
                 }
 
-                if (!suppressObservers && document != null)
+                if (!suppressObservers && document is not null)
                 {
                     document.QueueMutation(MutationRecord.ChildList(
                         target: this,
@@ -442,6 +448,19 @@ namespace AngleSharp.Dom
             throw new DomException(DomError.HierarchyRequest);
         }
 
+        #endregion
+
+        #region Protected Methods
+
+        /// <summary>
+        /// Called when ReplaceAll was run.
+        /// </summary>
+        protected virtual void ReplacedAll() {}
+
+        #endregion
+
+        #region Public Methods
+
         /// <summary>
         /// Clones the current node using the new owner.
         /// </summary>
@@ -449,10 +468,6 @@ namespace AngleSharp.Dom
         /// <param name="deep">True if a deep clone is wanted, otherwise false.</param>
         /// <returns>The cloned node.</returns>
         public abstract Node Clone(Document newOwner, Boolean deep);
-
-        #endregion
-
-        #region Public Methods
 
         /// <inheritdoc />
         public void AppendText(String s)
@@ -586,6 +601,7 @@ namespace AngleSharp.Dom
         /// <inheritdoc />
         public INode ReplaceChild(INode newChild, INode oldChild) => this.ReplaceChild((Node)newChild, (Node)oldChild, false);
 
+
         /// <inheritdoc />
         public INode RemoveChild(INode child) => this.PreRemove(child);
 
@@ -668,6 +684,7 @@ namespace AngleSharp.Dom
                                     m.EndWith(text, length);
                                 }
                             }
+
                             length += sibling.Length;
                         }
 
@@ -805,7 +822,7 @@ namespace AngleSharp.Dom
         /// <inheritdoc />
         protected static Boolean IsNamespaceError(String? prefix, String? namespaceUri, String qualifiedName)
         {
-            return (prefix != null && namespaceUri is null) || (prefix.Is(NamespaceNames.XmlPrefix) && !namespaceUri.Is(NamespaceNames.XmlUri)) ||
+            return (prefix is not null && namespaceUri is null) || (prefix.Is(NamespaceNames.XmlPrefix) && !namespaceUri.Is(NamespaceNames.XmlUri)) ||
                 ((qualifiedName.Is(NamespaceNames.XmlNsPrefix) || prefix.Is(NamespaceNames.XmlNsPrefix)) && !namespaceUri.Is(NamespaceNames.XmlNsUri)) ||
                 (namespaceUri.Is(NamespaceNames.XmlNsUri) && (!qualifiedName.Is(NamespaceNames.XmlNsPrefix) && !prefix.Is(NamespaceNames.XmlNsPrefix)));
         }
@@ -849,7 +866,6 @@ namespace AngleSharp.Dom
             {
                 foreach (var child in _children)
                 {
-
                     if (child is Node node)
                     {
                         var clone = node.Clone(owner, true);
@@ -857,6 +873,76 @@ namespace AngleSharp.Dom
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region Construction
+
+        StringOrMemory IConstructableNode.NodeName => NodeName;
+
+        /// <inheritdoc />
+        NodeFlags IConstructableNode.Flags => _flags;
+
+        IConstructableNode? IConstructableNode.Parent
+        {
+            get => Parent;
+            set
+            {
+                if (value is not null)
+                {
+                    Parent = (Node)value;
+                }
+            }
+        }
+
+        IConstructableNodeList IConstructableNode.ChildNodes => ChildNodes;
+
+        void IConstructableNode.RemoveFromParent()
+        {
+            Parent?.RemoveChild(this);
+        }
+
+        void IConstructableNode.RemoveChild(IConstructableNode childNode)
+        {
+            RemoveChild((Node)childNode, false);
+        }
+
+        void IConstructableNode.RemoveNode(Int32 idx, IConstructableNode childNode)
+        {
+            RemoveNode(idx, (Node)childNode);
+        }
+
+        void IConstructableNode.InsertNode(Int32 idx, IConstructableNode childNode)
+        {
+            InsertNode(idx, (Node)childNode);
+        }
+
+        void IConstructableNode.AddNode(IConstructableNode node)
+        {
+            AddNode((Node)node);
+        }
+
+        private static ReadOnlySpan<Char> WhiteSpace => " \t\r\n".AsSpan();
+
+        void IConstructableNode.AppendText(StringOrMemory text, Boolean emitWhiteSpaceOnly)
+        {
+            if (!emitWhiteSpaceOnly && text.Memory.Span.Trim(WhiteSpace).Length == 0)
+            {
+                return;
+            }
+
+            AppendText(text.ToString());
+        }
+
+        void IConstructableNode.InsertText(Int32 idx, StringOrMemory text, Boolean emitWhiteSpaceOnly)
+        {
+            if (!emitWhiteSpaceOnly && text.Memory.Span.Trim(WhiteSpace).Length == 0)
+            {
+                return;
+            }
+
+            InsertText(idx, text.ToString());
         }
 
         #endregion

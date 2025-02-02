@@ -14,6 +14,7 @@ namespace AngleSharp.Text
     using System.Reflection;
     using System.Runtime.CompilerServices;
     using System.Text;
+    using Common;
 
     /// <summary>
     /// Useful methods for string objects.
@@ -29,7 +30,7 @@ namespace AngleSharp.Text
         /// <param name="index">The index of the character.</param>
         /// <returns>True if the value has the char, otherwise false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-       
+
         public static Boolean Has([NotNullWhen(true)] this String? value, Char chr, Int32 index = 0)
         {
             return value != null && value.Length > index && value[index] == chr;
@@ -69,7 +70,7 @@ namespace AngleSharp.Text
         /// </summary>
         /// <param name="value">The string to be transformed.</param>
         /// <returns>The resulting string.</returns>
-        public static String HtmlLower(this String value)
+        public static StringOrMemory HtmlLower(this StringOrMemory value)
         {
             var length = value.Length;
 
@@ -79,32 +80,59 @@ namespace AngleSharp.Text
 
                 if (c.IsUppercaseAscii())
                 {
-                    var result = new Char[length];
-
-                    for (var j = 0; j < i; j++)
+                    if (length < 128)
                     {
-                        result[j] = value[j];
+                        // safe to stackalloc inside loop because will immediately return
+                        Span<Char> result = stackalloc Char[length];
+                        return Slow(value, i, result);
                     }
-
-                    result[i] = Char.ToLowerInvariant(c);
-
-                    for (var j = i + 1; j < length; j++)
+                    else
                     {
-                        c = value[j];
-
-                        if (c.IsUppercaseAscii())
-                        {
-                            c = Char.ToLowerInvariant(c);
-                        }
-
-                        result[j] = c;
+                        var rent = ArrayPool<Char>.Shared.Rent(length);
+                        Span<Char> result = rent.AsSpan(0, length);
+                        var tmp = Slow(value, i, result);
+                        ArrayPool<Char>.Shared.Return(rent);
+                        return tmp;
                     }
-
-                    return new String(result);
                 }
             }
 
             return value;
+
+            static String Slow(StringOrMemory value, Int32 i, Span<Char> result)
+            {
+                for (var j = 0; j < i; j++)
+                {
+                    result[j] = value[j];
+                }
+
+                var c = value[i];
+                result[i] = Char.ToLowerInvariant(c);
+
+                for (var j = i + 1; j < value.Length; j++)
+                {
+                    c = value[j];
+
+                    if (c.IsUppercaseAscii())
+                    {
+                        c = Char.ToLowerInvariant(c);
+                    }
+
+                    result[j] = c;
+                }
+
+                return result.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Transforms the given string to lower case by the HTML specification.
+        /// </summary>
+        /// <param name="value">The string to be transformed.</param>
+        /// <returns>The resulting string.</returns>
+        public static String HtmlLower(this String value)
+        {
+            return new StringOrMemory(value).HtmlLower().ToString();
         }
 
         /// <summary>
@@ -278,8 +306,9 @@ namespace AngleSharp.Text
 
             var hasSpace = true;
             var index = 0;
+            var l = str.Length;
 
-            for (var i = 0; i < str.Length; i++)
+            for (var i = 0; i < l; i++)
             {
                 if (str[i].IsSpaceCharacter())
                 {
@@ -303,7 +332,7 @@ namespace AngleSharp.Text
 
             var result = new String(buffer, 0, index);
 
-            ArrayPool<char>.Shared.Return(buffer);
+            ArrayPool<Char>.Shared.Return(buffer);
 
             return result;
         }
@@ -318,8 +347,9 @@ namespace AngleSharp.Text
             var sb = StringBuilderPool.Obtain();
 
             var hasSpace = false;
+            var l = str.Length;
 
-            for (var i = 0; i < str.Length; i++)
+            for (var i = 0; i < l; i++)
             {
                 if (str[i].IsSpaceCharacter())
                 {
@@ -348,12 +378,64 @@ namespace AngleSharp.Text
         /// <returns>The status of the check.</returns>
         public static Boolean Contains(this String[] list, String element, StringComparison comparison = StringComparison.Ordinal)
         {
-            for (var i = 0; i < list.Length; i++)
+            var l = list.Length;
+
+            for (var i = 0; i < l; i++)
             {
                 if (list[i].Equals(element, comparison))
                 {
                     return true;
                 }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if the given string satisfies the rules for a custom element name.
+        /// </summary>
+        /// <param name="tag">The current tag name.</param>
+        /// <returns>True if the string matches a custom element name.</returns>
+        public static Boolean IsCustomElement(this String tag)
+        {
+            if (tag.IndexOf('-') != -1 && !TagNames.DisallowedCustomElementNames.Contains(tag))
+            {
+                var l = tag.Length;
+
+                for (var i = 0; i < l; i++)
+                {
+                    if (!tag[i].IsCustomElementName())
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if the given string satisfies the rules for a custom element name.
+        /// </summary>
+        /// <param name="tag">The current tag name.</param>
+        /// <returns>True if the string matches a custom element name.</returns>
+        public static Boolean IsCustomElement(this StringOrMemory tag)
+        {
+            if (tag.Memory.Span.IndexOf('-') != -1 && !TagNames.DisallowedCustomElementNames.Contains(tag))
+            {
+                var l = tag.Length;
+
+                for (var i = 0; i < l; i++)
+                {
+                    if (!tag[i].IsCustomElementName())
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             return false;
@@ -370,6 +452,53 @@ namespace AngleSharp.Text
             String.Equals(current, other, StringComparison.Ordinal);
 
         /// <summary>
+        /// Checks if two strings are exactly equal.
+        /// </summary>
+        /// <param name="current">The current string.</param>
+        /// <param name="other">The other string.</param>
+        /// <returns>True if both are equal, false otherwise.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Is(this String? current, StringOrMemory other) =>
+            other.Memory.Span.SequenceEqual(current.AsSpan());
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Is(this Span<Char> current, String? other)
+        {
+            if (other == null) return false;
+            return current.SequenceEqual(other.AsSpan());
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Is(this ReadOnlySpan<Char> current, ReadOnlyMemory<Char> other)
+        {
+            return current.SequenceEqual(other.Span);
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Is(this ReadOnlySpan<Char> current, ReadOnlySpan<Char> other)
+        {
+            return current.SequenceEqual(other);
+        }
+
+        /// <summary>
         /// Checks if two strings are equal when viewed case-insensitive.
         /// </summary>
         /// <param name="current">The current string.</param>
@@ -378,6 +507,66 @@ namespace AngleSharp.Text
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Boolean Isi(this String? current, String? other) =>
             String.Equals(current, other, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Checks if two strings are equal when viewed case-insensitive.
+        /// </summary>
+        /// <param name="current">The current string.</param>
+        /// <param name="other">The other string.</param>
+        /// <returns>True if both are equal, false otherwise.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Isi(this String? current, StringOrMemory other) =>
+            MemoryExtensions.Equals(current.AsSpan(), other.Memory.Span, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Isi(this Span<Char> current, String? other)
+        {
+            if (other == null) return false;
+            return System.MemoryExtensions.Equals(current, other.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Isi(this Span<Char> current, ReadOnlySpan<Char> other)
+        {
+            return System.MemoryExtensions.Equals(current, other, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Isi(this Span<Char> current, ReadOnlyMemory<Char> other)
+        {
+            return System.MemoryExtensions.Equals(current, other.Span, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Boolean Isi(this ReadOnlySpan<Char> current, String? other)
+        {
+            if (other == null) return false;
+            return System.MemoryExtensions.Equals(current, other.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        }
 
         /// <summary>
         /// Examines if the given element is equal to one of the given elements.
@@ -465,7 +654,7 @@ namespace AngleSharp.Text
         /// <param name="str">The string to examine.</param>
         /// <returns>A new string, which excludes the leading and tailing spaces.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static String StripLeadingTrailingSpaces(this string str)
+        public static String StripLeadingTrailingSpaces(this String str)
         {
             var start = 0;
             var end = str.Length - 1;
@@ -489,12 +678,13 @@ namespace AngleSharp.Text
         /// <param name="str">The string to examine.</param>
         /// <param name="c">The delimiter character.</param>
         /// <returns>The list of tokens.</returns>
-        public static String[] SplitWithoutTrimming(this string str, Char c)
+        public static String[] SplitWithoutTrimming(this String str, Char c)
         {
             var list = new List<String>();
             var index = 0;
+            var l = str.Length;
 
-            for (var i = 0; i < str.Length; i++)
+            for (var i = 0; i < l; i++)
             {
                 if (str[i] == c)
                 {
@@ -507,9 +697,9 @@ namespace AngleSharp.Text
                 }
             }
 
-            if (str.Length > index)
+            if (l > index)
             {
-                list.Add(str.Substring(index, str.Length - index));
+                list.Add(str.Substring(index, l - index));
             }
 
             return list.ToArray();
@@ -546,7 +736,7 @@ namespace AngleSharp.Text
         {
             var list = new List<String>();
             var buffer = ArrayPool<Char>.Shared.Rent(str.Length);
-            int c = 0;
+            var c = 0;
 
             for (var i = 0; i <= str.Length; i++)
             {
@@ -572,7 +762,7 @@ namespace AngleSharp.Text
                 }
             }
 
-            ArrayPool<char>.Shared.Return(buffer);
+            ArrayPool<Char>.Shared.Return(buffer);
 
             return list.ToArray();
         }
@@ -587,7 +777,7 @@ namespace AngleSharp.Text
         {
             var list = new List<String>();
             var buffer = ArrayPool<Char>.Shared.Rent(str.Length);
-            int c = 0;
+            var c = 0;
 
             for (var i = 0; i <= str.Length; i++)
             {
@@ -602,7 +792,7 @@ namespace AngleSharp.Text
                             list.Add(token);
                         }
 
-                        c = 0;                        
+                        c = 0;
                     }
                 }
                 else
@@ -613,7 +803,7 @@ namespace AngleSharp.Text
                 }
             }
 
-            ArrayPool<char>.Shared.Return(buffer);
+            ArrayPool<Char>.Shared.Return(buffer);
 
             return list.ToArray();
         }
@@ -663,7 +853,9 @@ namespace AngleSharp.Text
 
             if (!String.IsNullOrEmpty(value))
             {
-                for (var i = 0; i < value.Length; i++)
+                var l = value.Length;
+
+                for (var i = 0; i < l; i++)
                 {
                     var character = value[i];
 
@@ -680,7 +872,7 @@ namespace AngleSharp.Text
                     }
                     else if (character.IsInRange(0x1, 0x1f) || character == (Char)0x7b)
                     {
-                        builder.Append(Symbols.ReverseSolidus).Append(character.ToHex()).Append(i + 1 != value.Length ? " " : "");
+                        builder.Append(Symbols.ReverseSolidus).Append(character.ToHex()).Append(i + 1 != l ? " " : "");
                     }
                     else
                     {
@@ -707,8 +899,8 @@ namespace AngleSharp.Text
         /// values. Replaces the bytes 0x20 (U+0020 SPACE if interpreted as
         /// ASCII) with a single 0x2B byte ("+" (U+002B) character if
         /// interpreted as ASCII). If a byte is not in the range 0x2A, 0x2D,
-        /// 0x2E, 0x30 to 0x39, 0x41 to 0x5A, 0x5F, 0x61 to 0x7A, it is 
-        /// replaced with its hexadecimal value (zero-padded if necessary), 
+        /// 0x2E, 0x30 to 0x39, 0x41 to 0x5A, 0x5F, 0x61 to 0x7A, it is
+        /// replaced with its hexadecimal value (zero-padded if necessary),
         /// starting with the percent sign.
         /// </summary>
         /// <param name="content">The content to encode.</param>
@@ -716,8 +908,9 @@ namespace AngleSharp.Text
         public static String UrlEncode(this Byte[] content)
         {
             var builder = StringBuilderPool.Obtain();
+            var l = content.Length;
 
-            for (var i = 0; i < content.Length; i++)
+            for (var i = 0; i < l; i++)
             {
                 var chr = (Char)content[i];
 
@@ -747,8 +940,9 @@ namespace AngleSharp.Text
         public static Byte[] UrlDecode(this String value)
         {
             var ms = new MemoryStream();
+            var l = value.Length;
 
-            for (var i = 0; i < value.Length; i++)
+            for (var i = 0; i < l; i++)
             {
                 var chr = value[i];
 
@@ -759,7 +953,7 @@ namespace AngleSharp.Text
                 }
                 else if (chr == Symbols.Percent)
                 {
-                    if (i + 2 >= value.Length)
+                    if (i + 2 >= l)
                     {
                         throw new FormatException();
                     }
@@ -793,8 +987,9 @@ namespace AngleSharp.Text
             {
                 var builder = StringBuilderPool.Obtain();
                 var isCR = false;
+                var l = value.Length;
 
-                for (var i = 0; i < value.Length; i++)
+                for (var i = 0; i < l; i++)
                 {
                     var current = value[i];
                     var isLF = current == Symbols.LineFeed;

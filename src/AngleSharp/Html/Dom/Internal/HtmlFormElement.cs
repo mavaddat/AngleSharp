@@ -7,6 +7,7 @@ namespace AngleSharp.Html.Dom
     using AngleSharp.Html.Forms.Submitters;
     using AngleSharp.Io;
     using AngleSharp.Text;
+    using Construction;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
@@ -16,7 +17,7 @@ namespace AngleSharp.Html.Dom
     /// <summary>
     /// Represents the form element.
     /// </summary>
-    sealed class HtmlFormElement : HtmlElement, IHtmlFormElement
+    sealed class HtmlFormElement : HtmlElement, IHtmlFormElement, IConstructableFormElement
     {
         #region Fields
 
@@ -51,7 +52,7 @@ namespace AngleSharp.Html.Dom
 
         public Int32 Length => Elements.Length;
 
-        public HtmlFormControlsCollection Elements => _elements ?? (_elements = new HtmlFormControlsCollection(this));
+        public HtmlFormControlsCollection Elements => _elements ??= new HtmlFormControlsCollection(this);
 
         IHtmlFormControlsCollection IHtmlFormElement.Elements => Elements;
 
@@ -112,7 +113,7 @@ namespace AngleSharp.Html.Dom
         {
             var request = GetSubmission();
             var context = Context.ResolveTargetContext(Target);
-            return Context.NavigateToAsync(request);
+            return context.NavigateToAsync(request);
         }
 
         public Task<IDocument> SubmitAsync(IHtmlElement sourceElement)
@@ -353,7 +354,7 @@ namespace AngleSharp.Html.Dom
 
             if (enctype.Isi(MimeTypeNames.MultipartForm))
             {
-                enctype = String.Concat(MimeTypeNames.MultipartForm, "; boundary=", formDataSet.Boundary);
+                return DocumentRequest.PostAsMultipart(url, body, formDataSet.Boundary);
             }
 
             return DocumentRequest.Post(url, body, enctype, source: this, referer: Owner.DocumentUri);

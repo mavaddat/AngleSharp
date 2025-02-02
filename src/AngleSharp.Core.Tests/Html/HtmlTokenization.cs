@@ -89,7 +89,7 @@ namespace AngleSharp.Core.Tests.Html
             Assert.AreEqual(HtmlTokenType.Character, token.Type);
             Assert.AreEqual(content, token.Data);
         }
-        
+
         [Test]
         public void TokenizationStartTagDetection()
         {
@@ -129,7 +129,7 @@ namespace AngleSharp.Core.Tests.Html
             Assert.AreEqual(HtmlTokenType.Comment, token.Type);
             Assert.AreEqual(" ", token.Data);
         }
-        
+
         [Test]
         public void TokenizationTagNameDetection()
         {
@@ -138,7 +138,7 @@ namespace AngleSharp.Core.Tests.Html
             var token = t.Get();
             Assert.AreEqual("span", ((HtmlTagToken)token).Name);
         }
-        
+
         [Test]
         public void TokenizationTagSelfClosingDetected()
         {
@@ -147,7 +147,7 @@ namespace AngleSharp.Core.Tests.Html
             var token = t.Get();
             Assert.AreEqual(true, ((HtmlTagToken)token).IsSelfClosing);
         }
-        
+
         [Test]
         public void TokenizationAttributesDetected()
         {
@@ -219,7 +219,7 @@ namespace AngleSharp.Core.Tests.Html
             var token = t.Get();
             Assert.AreEqual("i", ((HtmlTagToken)token).Name);
         }
-        
+
         [Test]
         public void TokenizationCharacterReferenceNotin()
         {
@@ -242,7 +242,7 @@ namespace AngleSharp.Core.Tests.Html
 
             Assert.AreEqual("I'm ∉ I tell you", str);
         }
-        
+
         [Test]
         public void TokenizationCharacterReferenceNotIt()
         {
@@ -265,7 +265,7 @@ namespace AngleSharp.Core.Tests.Html
 
             Assert.AreEqual("I'm ¬it; I tell you", str);
         }
-        
+
         [Test]
         public void TokenizationDoctypeDetected()
         {
@@ -274,7 +274,7 @@ namespace AngleSharp.Core.Tests.Html
             var token = t.Get();
             Assert.AreEqual(HtmlTokenType.Doctype, token.Type);
         }
-        
+
         [Test]
         public void TokenizationCommentDetected()
         {
@@ -367,19 +367,17 @@ namespace AngleSharp.Core.Tests.Html
             var phrase = "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ";  // 78 bytes
             var content = String.Concat(Enumerable.Repeat(phrase, 53));    // x53 => 4134 bytes
             var encoding = new UTF8Encoding(false);
-            using (var contentStm = new MemoryStream(encoding.GetBytes(content)))
-            {
-                var s = new TextSource(contentStm, encoding);
-                var t = CreateTokenizer(s);
-                // Read 4096 bytes to buffer
-                await s.PrefetchAsync(100, CancellationToken.None);
-                // Change encoding utf-8 to utf-8. (Same, but different instance)
-                s.CurrentEncoding = TextEncoding.Utf8;
-                var token = t.Get();
-                Assert.IsTrue(s.CurrentEncoding == TextEncoding.Utf8);
-                Assert.IsTrue(s.CurrentEncoding != encoding);
-                Assert.AreEqual(content, token.Data);
-            }
+            using var contentStm = new MemoryStream(encoding.GetBytes(content));
+            var s = new TextSource(contentStm, encoding);
+            var t = CreateTokenizer(s);
+            // Read 4096 bytes to buffer
+            await s.PrefetchAsync(100, CancellationToken.None);
+            // Change encoding utf-8 to utf-8. (Same, but different instance)
+            s.CurrentEncoding = TextEncoding.Utf8;
+            var token = t.Get();
+            Assert.IsTrue(s.CurrentEncoding == TextEncoding.Utf8);
+            Assert.IsTrue(s.CurrentEncoding != encoding);
+            Assert.AreEqual(content, token.Data);
         }
 
         [Test]

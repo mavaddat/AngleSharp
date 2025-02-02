@@ -1,3 +1,156 @@
+# 1.3.0
+
+Released on Friday, January 31 2025.
+
+- Updated to NUKE 9 and removed obsolete .NET 6 and 9 targets (#1216) @lahma
+- Added support for targetting iframes (#1205) @TheJayMann
+
+# 1.2.0
+
+Released on Tuesday, December 31 2024.
+
+- Fixed loading of link element source (#1184) @tomvanenckevort
+- Fixed usage of outdated dependency (#1186)
+- Fixed cookie `Expires` recognized as local time (#1212) @noobow34
+- Fixed validation for problematic decimal step values (#1210) @rhuebner76
+- Removed unnecessary references for .NET 6 and higher (#1187) @lahma
+- Removed support for .NET 4.6.1 (least version is 4.6.2)
+- Updated to NUKE 8 (#1188) @lahma
+- Added new `OnToken` event for the tokenizer (#1153) @schaakverslaafd
+- Added new setting for disabling `StringBuilder` pooling (#1203) @micahbresette
+- Added context to extension methods (#1194) @memiamp
+- Added `property` attribute to meta tags (#1195) @hflexgrig
+
+# 1.1.2
+
+Released on Friday, March 8 2024.
+
+- Fixed exception when providing wrong response (#1181)
+- Fixed handling of various inputs leading to timeouts (#1180)
+
+# 1.1.1
+
+Released on Friday, March 1 2024.
+
+- Fixed `ISourceReference` not using `HtmlToken` underneath
+- Fixed handling of replacement characters in escaped script blocks (#1174)
+- Fixed handling of empty template element in SVG foreign mode (#1176)
+- Fixed handling of `<template>` in foreign elements (#1179)
+- Improved pre-release version to follow semver (#1171) @georg-jung
+- Improved NuGet package with link to repository (#1168) @thompson-tomo
+- Added `PostAsMultipart` helper for multipart/form-data to `DocumentRequest` (#1173)
+
+# 1.1.0
+
+Released on Thursday, January 18 2024.
+
+- Fixed priority calculations for selector lists (#1161)
+- Fixed `:where` and `:is` selectors using forgiving lists
+- Added option for read only DOM (#1154) @dv00d00
+- Added more optimizations to reduce allocation rate (#1159) @dv00d00
+- Added support for nested selectors (`&`)
+
+# 1.0.7
+
+Released on Friday, November 17 2023.
+
+- Fixed implementation of `IRange` using offsets (#1147) @zukarusan
+- Improved performance in `Node.set_Owner` (#1149) @campersau
+- Added `net8.0` as direct target framework
+
+# 1.0.6
+
+Released on Saturday, November 11 2023.
+
+- Fixed case-sensitiveness in virtual responses
+- Fixed warning for outdated actions in CI/CD workflow (#1145) @martincostello
+- Fixed AoT warning when trimming (#1144) @martincostello
+- Fixed decoding of entities in `InnerHtml` of `<noscript>` (#1139)
+- Updated `PrettyMarkupFormatter` to keep new lines on demand (#1131) @dramlian
+
+# 1.0.5
+
+Released on Tuesday, October 3 2023.
+
+- Improved codebase (#1128, #1126, #1133) @matkoch @ivandrofly
+- Improved documentation (#1127)
+- Improved child selector performance (#1135) @lahma
+- Improved query selector all performance (#584, #1134) @lahma
+- Fixed issue with foreign content using end tags
+- Fixed typo `descendants` (#1136) @SimonCropp
+- Added a way to resolve symbols by their name to `HtmlEntityProvider` (#396)
+
+# 1.0.4
+
+Released on Saturday, June 24 2023.
+
+- Fixed issue with gzip encoding under certain conditions (#1122)
+- Fixed issue with `li` scope leading to stack overflow (#1123)
+- Added more pseudo selectors from Selector L4 spec (#1121)
+
+# 1.0.3
+
+Released on Thursday, June 8 2023.
+
+- Fixed wrong escaping of CSS selector pseudo class functions (#1069)
+
+# 1.0.2
+
+Released on Tuesday, June 4 2023.
+
+- Improved codebase (#1091, #1090, #1089, #1088, #1087, #1086) @SimonCropp
+- Fixed potential stack overflow in `GetStyleSheets` (#1084) @bjornri
+- Fixed serialization of `DocumentReadyState` by providing `DomName` attributes (#1109)
+- Fixed start and end of `Range` to handle specific offset in a `TextNode` (#1118)
+- Fixed `Range` inclusion algorithm (#1119)
+- Added public class `HtmlTokenizer` (#1113)
+
+# 1.0.1
+
+Released on Monday, January 16 2023.
+
+- Fixed entities in `noscript` being double encoded (#1070)
+- Added previous `Event` constructor overload for ABI compatibility
+- Added README to NuGet package
+
+# 1.0.0
+
+Released on Tuesday, January 10 2023.
+
+- Updated build system to use NUKE instead of CAKE (#1075) @driekus77
+- Fixed `TagClosedWrong` error with nested formatting elements (#1052)
+- Fixed performance issue within deeply nested structures (#1066) @heinrich-ulbricht
+- Fixed decoding of entities in `noscript` elements without scripting (#1070)
+- Fixed setting templte content using `InnerHtml` (#1072)
+- Fixed `TreeWalker` throwing `NullReferenceException` (#1073)
+- Improved `GetItemByIndex` performance (#1050) @egil
+- Improved nullability (#1057) @jodydonetti
+- Improved CSS selectors by counting the specificity properly (#1080) @patrikwlund
+- Added `GetComposedPath` and `IsComposed` to the `Event` class (#1053)
+
+# 0.17.1
+
+Released on Thursday, June 2 2022.
+
+- Fixed wrong reference to `System.Text.Encoding.CodePages` (#1046) @linkdotnet
+
+# 0.17.0
+
+Released on Tuesday, May 31 2022.
+
+- Dropped .NET Framework 4.6 (#960)
+- Updated GitHub actions logger (#1044) @Tyrrrz
+- Updated editorconfig to include code conventions (#1025) @kzrnm
+- Updated to use RFC1123Pattern format (#1018) @kzrnm
+- Fixed some typos (#1043) @mavaddat
+- Fixed inheritence of query parameters for fragment-only URLs (#1037)
+- Fixed `Query` dependence on `SearchParams` (#1024) @kzrnm
+- Fixed `Hash` and `Search` in `Url` (#1021) @kzrnm
+- Fixed behavior of `Url` with empty query (#1016) @kzrnm
+- Added option to parse custom elements in `head` (#1035)
+- Added option to prevent self-closing in `XhtmlMarkupFormatter` (#1031) @Aizeren
+- Added option to keep original attribute names / casing (#897)
+
 # 0.16.1
 
 Released on Wednesday, October 6 2021.

@@ -1,6 +1,8 @@
-﻿namespace AngleSharp.Core.Tests.Html
+namespace AngleSharp.Core.Tests.Html
 {
     using AngleSharp.Dom;
+    using AngleSharp.Html;
+    using AngleSharp.Html.Parser;
     using NUnit.Framework;
 
      /// <summary>
@@ -1030,6 +1032,33 @@
             Assert.AreEqual("div", dochtml0body1div0.GetTagName());
             Assert.AreEqual(NodeType.Element, dochtml0body1div0.NodeType);
             Assert.AreEqual("ZZ∏_id=23", dochtml0body1div0.GetAttribute("bar"));
+        }
+
+        [Test]
+        public void ResolveNameBySymbol_Issue396()
+        {
+            var resolver = HtmlEntityProvider.Resolver;
+            var reverseResolver = HtmlEntityProvider.ReverseResolver;
+            var symbol = "copy;";
+            var resolved = resolver.GetSymbol(symbol);
+            var result = reverseResolver.GetName(resolved);
+            Assert.AreEqual(symbol, result);
+        }
+
+        [Test]
+        // [Timeout(500)]
+        public void EntityDecodingInNoScript_Issue1139()
+        {
+            var html = @"<html></head><body><noscript><div></div></noscript></body></html>";
+            var parser = new HtmlParser(new HtmlParserOptions
+            {
+                IsScripting = true
+            });
+            var dom = parser.ParseDocument(html);
+            var noscript = dom.QuerySelector("noscript");
+            Assert.AreEqual("<div></div>", noscript.InnerHtml);
+            noscript.InnerHtml = noscript.InnerHtml.Replace("<", "&lt;").Replace(">", "&gt;");
+            Assert.AreEqual("&lt;div&gt;&lt;/div&gt;", noscript.InnerHtml);
         }
     }
 }

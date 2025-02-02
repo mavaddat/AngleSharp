@@ -125,7 +125,7 @@ namespace AngleSharp.Core.Tests.Library
                 var context = BrowsingContext.New(config);
                 var document = await context.OpenAsync(address);
                 var anchors = document.QuerySelectorAll<IHtmlAnchorElement>("ul a");
-                var anchor = anchors.Where(m => m.TextContent == "Header").FirstOrDefault();
+                var anchor = anchors.FirstOrDefault(m => m.TextContent == "Header");
                 var result = await context.OpenAsync(Url.Create(anchor.Href));
 
                 Assert.IsNotNull(result);
@@ -145,7 +145,7 @@ namespace AngleSharp.Core.Tests.Library
                 var context = BrowsingContext.New(config);
                 var document = await context.OpenAsync(address);
                 var anchors = document.QuerySelectorAll<IHtmlAnchorElement>("ul a");
-                var anchor = anchors.Where(m => m.TextContent == title).FirstOrDefault();
+                var anchor = anchors.FirstOrDefault(m => m.TextContent == title);
                 var result = await anchor.NavigateAsync();
 
                 Assert.IsNotNull(result);
@@ -177,6 +177,24 @@ namespace AngleSharp.Core.Tests.Library
             var img = document.QuerySelector<IHtmlImageElement>("img");
             Assert.AreEqual(0, delayRequester.RequestCount);
             Assert.IsFalse(img.IsCompleted);
+        }
+
+        [Test]
+        public async Task GzipEncoding_Issue1122()
+        {
+            if (Helper.IsNetworkAvailable())
+            {
+                var address = "https://www.powerball.com";
+                var config = Configuration.Default.WithLocaleBasedEncoding().WithPageRequester();
+                var context = BrowsingContext.New(config);
+                var document = await context.OpenAsync(address);
+
+                Assert.IsNotNull(document);
+                // Any value goes - it should just be readable and make sense
+                Assert.AreEqual("Home | Powerball", document.Title);
+                // Sure, this can break fast if they change something; but we need an indicator that we can trust
+                Assert.IsNotNull(document.QuerySelector("a.u-text-transform-uppercase.c-skipnav"));
+            }
         }
 
         [Test]
@@ -222,7 +240,7 @@ namespace AngleSharp.Core.Tests.Library
                 var context = BrowsingContext.New(config);
                 var events = new EventReceiver<HtmlParseEvent>(handler => context.GetService<IHtmlParser>().Parsing += handler);
                 var start = DateTime.Now;
-                events.OnReceived = rec => start = DateTime.Now;
+                events.OnReceived = _ => start = DateTime.Now;
                 await context.OpenAsync(address);
                 var end = DateTime.Now;
                 Assert.Greater(end - start, TimeSpan.FromSeconds(1));
@@ -319,7 +337,7 @@ namespace AngleSharp.Core.Tests.Library
             {
                 hasBeenParsed = true;
             }, MimeTypeNames.DefaultJavaScript);
-            var provider = new MockIntegrityProvider((raw, integrity) =>
+            var provider = new MockIntegrityProvider((_, _) =>
             {
                 hasBeenChecked = true;
                 return false;
@@ -343,7 +361,7 @@ namespace AngleSharp.Core.Tests.Library
             {
                 hasBeenParsed = true;
             }, MimeTypeNames.DefaultJavaScript);
-            var provider = new MockIntegrityProvider((raw, integrity) =>
+            var provider = new MockIntegrityProvider((_, _) =>
             {
                 hasBeenChecked = true;
                 return true;
@@ -367,7 +385,7 @@ namespace AngleSharp.Core.Tests.Library
             {
                 hasBeenParsed = true;
             }, MimeTypeNames.DefaultJavaScript);
-            var provider = new MockIntegrityProvider((raw, integrity) =>
+            var provider = new MockIntegrityProvider((_, _) =>
             {
                 hasBeenChecked = true;
                 return false;
@@ -388,7 +406,7 @@ namespace AngleSharp.Core.Tests.Library
             var type = "text/markdown";
             var context = BrowsingContext.New();
             var documentFactory = context.GetFactory<IDocumentFactory>() as DefaultDocumentFactory;
-            documentFactory.Register(type, (ctx, options, cancel) => Task.FromResult<IDocument>(new MarkdownDocument(ctx, options.Source)));
+            documentFactory.Register(type, (ctx, options, _) => Task.FromResult<IDocument>(new MarkdownDocument(ctx, options.Source)));
             var document = await context.OpenAsync(res => res.Content("").Header(HeaderNames.ContentType, type));
             Assert.IsInstanceOf<MarkdownDocument>(document);
         }
@@ -399,7 +417,7 @@ namespace AngleSharp.Core.Tests.Library
             var type = "text/markdown";
             var context = BrowsingContext.New();
             var documentFactory = context.GetFactory<IDocumentFactory>() as DefaultDocumentFactory;
-            documentFactory.Register(type, (ctx, options, cancel) => Task.FromResult<IDocument>(new MarkdownDocument(ctx, options.Source)));
+            documentFactory.Register(type, (ctx, options, _) => Task.FromResult<IDocument>(new MarkdownDocument(ctx, options.Source)));
             var handler = documentFactory.Unregister(type);
             var document = await context.OpenAsync(res => res.Content("").Header(HeaderNames.ContentType, type));
             Assert.IsNotNull(handler);
@@ -426,14 +444,12 @@ namespace AngleSharp.Core.Tests.Library
                 var req = new HttpClient();
                 var message = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, uri);
 
-                using (var response = await req.SendAsync(message))
+                using var response = await req.SendAsync(message);
+                if (response != null && response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    if (response != null && response.StatusCode == System.Net.HttpStatusCode.OK)
-                    {
-                        var stream = await response.Content.ReadAsStreamAsync();
-                        var document = await BrowsingContext.New(config).OpenAsync(m => m.Content(stream).Address(uri));
-                        Assert.IsNotNull(document);
-                    }
+                    var stream = await response.Content.ReadAsStreamAsync();
+                    var document = await BrowsingContext.New(config).OpenAsync(m => m.Content(stream).Address(uri));
+                    Assert.IsNotNull(document);
                 }
             }
         }

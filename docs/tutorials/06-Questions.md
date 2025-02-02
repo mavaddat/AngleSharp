@@ -48,8 +48,10 @@ using (var response = await download.Task)
 This assumes a configuration / context such as
 
 ```cs
-var config = Configuration.Default.WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithCookies();
-var context = BrowsingContext.New(config);
+IConfiguration config = Configuration.Default
+    .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true })
+    .WithCookies();
+IBrowsingContext context = BrowsingContext.New(config);
 ```
 
 ## Is it possible to get the HTML after JavaScript and Blazor run?
@@ -78,12 +80,12 @@ Another very common scenario is standard network credentials. These can also be 
 ```cs
 var credentials = new NetworkCredential("user", "pass", "domain");
 var handler = new HttpClientHandler { Credentials = credentials };
-var config = Configuration.Default
+IConfiguration config = Configuration.Default
     .WithRequesters(handler)
     .WithCookies()
     .WithDefaultLoader();
-var context = BrowsingContext.New(config);
-var document = await context.OpenAsync(url);
+IBrowsingContext context = BrowsingContext.New(config);
+IDocument document = await context.OpenAsync(url);
 ```
 
 ## How to use a proxy with AngleSharp?
@@ -125,7 +127,7 @@ There is, unfortunately, nothing that you can do here - you will need to close t
 
 The only thing you can click with AngleSharp (Core, i.e., non-JS) is everything that has an anchor (the link will be followed), such as `a`, or submit (e.g., `button`) buttons where the form will be submitted. If, e.g., we have a `div` that has a click handler defined in JS nothing would come out.
 
-## How can I perform a click on a div without an UI?
+## How can I perform a click on a div without a UI?
 
 Let's first visit again what can be done with AngleSharp:
 
@@ -138,7 +140,7 @@ Here trivial means: Scripts that do not need any capabilities beyond what AngleS
 
 The problem is that in order to "click" a div on a page a script needs to be run. This script can now fall into the "trivial" category, however, most likely it is not. Now you have 2 options:
 
-- Try it out and maybe it works / great, otherwise ...
+- Try it out, and maybe it works / great, otherwise ...
 - See what the script is doing (obviously some HTTP request eventually ...) and do the same
 
 The latter can of course be re-implemented in C# / AngleSharp. So you can create an HTTP request, get the data and either do something on that data set directly (it may be JSON and already what you want ....) or (if it is serving partial HTML) re-parse it and integrate it on the real page.
@@ -169,8 +171,7 @@ So theoretically, only `DocumentUri` is guaranteed to always return a value.
 Let's say the URLs can always be found in standard anchor links (`a`). One possible way is to use
 
 ```cs
-var links = document
-    .Links
+IEnumerable<IHtmlAnchorElement> links = document.Links
     .OfType<IHtmlAnchorElement>()
     .Select(e => e.Href)
     .Where(h => h.Contains(keyword));
@@ -270,11 +271,11 @@ Text is modeled as a `TextNode`, it is a type of node beside element, comment no
 You can get text nodes located directly within product div by traversing through the div's `ChildNodes` and then filter by `NodeType`, for example:
 
 ```cs
-var products = document.QuerySelectorAll("div.product");
+IHtmlCollection<IElement> products = document.QuerySelectorAll("div.product");
 
 foreach (var product in products)
 {
-    var productTitle = product.ChildNodes
+    INode productTitle = product.ChildNodes
         .First(o => o.NodeType == NodeType.Text && o.TextContent.Trim() != "");
     Console.WriteLine(productTitle.TextContent.Trim());
 }
@@ -287,10 +288,10 @@ Notice that newlines between elements are also text nodes, so we need to filter 
 Given the following usage scenario:
 
 ```cs
-var context = BrowsingContext.New();
-var document = await context.OpenNewAsync();
+IBrowsingContext context = BrowsingContext.New();
+IDocument document = await context.OpenNewAsync();
 
-var tag = document.CreateElement("customTag");
+IElement tag = document.CreateElement("customTag");
 tag.SetAttribute("attr", "x");
 tag.AsSelfClosing();
 
@@ -388,11 +389,11 @@ This is possible using a document fragment.
 There are multiple possibilities how to use a document fragment, one way would be to use fragment parsing for generating a node list in the right (element) context:
 
 ```cs
-var context = BrowsingContext.New(Configuration.Default);
-var document = await context.OpenAsync(r => r.Content("<div id=app><div>Some already available content...</div></div>"));
-var app = document.QuerySelector("#app");
-var parser = context.GetService<IHtmlParser>();
-var nodes = parser.ParseFragment("<div id='div1'>hi<p>world</p></div>", app);
+IBrowsingContext context = BrowsingContext.New(Configuration.Default);
+IDocument document = await context.OpenAsync(r => r.Content("<div id=app><div>Some already available content...</div></div>"));
+IElement app = document.QuerySelector("#app");
+IHtmlParser parser = context.GetService<IHtmlParser>();
+INodeList nodes = parser.ParseFragment("<div id='div1'>hi<p>world</p></div>", app);
 app.Append(nodes.ToArray());
 ```
 
@@ -400,7 +401,7 @@ The example shows how nodes can be created in the context of a certain element (
 
 ## Can I retrieve the positions of elements in the source code?
 
-By default AngleSharp will throw away the "tokens" that associate the element with a position in the source code. This is mostly done due to the required memory consumption. The tag tokens transport not only the position, but also some additional fields like the name, flags and other meta information, as well as attributes. These tokens, however, can be preserved.
+By default, AngleSharp will throw away the "tokens" that associate the element with a position in the source code. This is mostly done due to the required memory consumption. The tag tokens transport not only the position, but also some additional fields like the name, flags and other meta information, as well as attributes. These tokens, however, can be preserved.
 
 Currently, there are two ways to do this (both accessible via the `HtmlParserOptions`).
 
@@ -421,7 +422,7 @@ var parser = new HtmlParser(new HtmlParserOptions
         }
     },
 });
-var document = parser.ParseDocument("<!doctype html><body>");
+IDocument document = parser.ParseDocument("<!doctype html><body>");
 ```
 
 The code for option 2 looks as follows:
@@ -431,8 +432,8 @@ var parser = new HtmlParser(new HtmlParserOptions
 {
     IsKeepingSourceReferences = true,
 });
-var document = parser.ParseDocument("<!doctype html><body>");
-var bodyPos = document.Body.SourceReference.Position;
+IDocument document = parser.ParseDocument("<!doctype html><body>");
+TextPosition bodyPos = document.Body.SourceReference.Position;
 ```
 
 In both cases the position we care about will be stored in `bodyPos`.
@@ -440,5 +441,21 @@ In both cases the position we care about will be stored in `bodyPos`.
 **Remark**: As `SourceReference` may be empty (e.g., when we omit the provided option or if we select an element that came in *after* parsing) we advise of using `SourceReference?.Position`, where we would end up with a `Nullable<TextPosition>`. Ideally, we then just use `TextPosition.Empty` as the fallback, e.g., in the code above:
 
 ```cs
-var bodyPos = document.Body.SourceReference?.Position ?? TextPosition.Empty;
+TextPosition bodyPos = document.Body.SourceReference?.Position ?? TextPosition.Empty;
 ```
+
+## How can I specify encoding for loading a document?
+
+When you have the document available as a stream you may want to give AngleSharp a specific encoding - just like a webserver would do.
+
+Actually, AngleSharp's virtual request API makes that (and other use cases to emulate HTTP-features) quite easy:
+
+```cs
+IBrowsingContext context = BrowsingContext.New();
+
+IDocument document = await context.OpenAsync(req => req.Content(myStream).Header("content-type", "text/html; charset=UTF-8"));
+```
+
+The encoding decision in AngleSharp follows the same priority list as a browser does. Essentially, that means that the byte-order mark (BOM) always is considered the highest standard for it, but a header has higher precedence than a meta tag found in the source.
+
+In any case, there is also the complication of a "guess" vs a "confident" pick. So the BOM would still be checked as it's standardized per W3C.

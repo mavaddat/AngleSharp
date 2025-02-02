@@ -2,11 +2,12 @@ namespace AngleSharp.Html.Dom
 {
     using AngleSharp.Dom;
     using System;
+    using Construction;
 
     /// <summary>
     /// Represents the template element.
     /// </summary>
-    sealed class HtmlTemplateElement : HtmlElement, IHtmlTemplateElement
+    sealed class HtmlTemplateElement : HtmlElement, IHtmlTemplateElement, IConstructableTemplateElement
     {
         #region Fields
 
@@ -63,6 +64,8 @@ namespace AngleSharp.Html.Dom
         #endregion
 
         #region Helpers
+
+        protected override void ReplacedAll() => PopulateFragment();
 
         protected override void NodeIsAdopted(Document oldDocument) => _content.Owner = oldDocument;
 

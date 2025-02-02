@@ -40,7 +40,7 @@ namespace AngleSharp.Io
         /// <param name="source">The optional source of the request.</param>
         /// <param name="referer">The optional referrer string.</param>
         /// <returns>The new document request.</returns>
-        public static DocumentRequest Get(Url target, INode? source = null, String? referer = null) => new DocumentRequest(target)
+        public static DocumentRequest Get(Url target, INode? source = null, String? referer = null) => new(target)
         {
             Method = HttpMethod.Get,
             Referer = referer,
@@ -58,7 +58,7 @@ namespace AngleSharp.Io
         /// <param name="source">The optional source of the request.</param>
         /// <param name="referer">The optional referrer string.</param>
         /// <returns>The new document request.</returns>
-        public static DocumentRequest Post(Url target, Stream body, String type, INode? source = null, String? referer = null) => new DocumentRequest(target)
+        public static DocumentRequest Post(Url target, Stream body, String type, INode? source = null, String? referer = null) => new(target)
         {
             Method = HttpMethod.Post,
             Body = body ?? throw new ArgumentNullException(nameof(body)),
@@ -105,6 +105,35 @@ namespace AngleSharp.Io
             }
 
             return Post(target, fds.AsUrlEncoded(), MimeTypeNames.UrlencodedForm);
+        }
+
+        /// <summary>
+        /// Creates a POST request for the given target with the fields being
+        /// used to generate the body and encoding type url encoded.
+        /// </summary>
+        /// <param name="target">The target to use.</param>
+        /// <param name="form">The form to send.</param>
+        /// <returns>The new document request.</returns>
+        public static DocumentRequest PostAsMultipart(Url target, FormDataSet form)
+        {
+            _ = form ?? throw new ArgumentNullException(nameof(form));
+            return PostAsMultipart(target, form.AsMultipart(null), form.Boundary);
+        }
+
+        /// <summary>
+        /// Creates a POST request for the given target with the fields being
+        /// used to generate the body and encoding type url encoded.
+        /// </summary>
+        /// <param name="target">The target to use.</param>
+        /// <param name="formBody">The body of the form to send.</param>
+        /// <param name="formBoundary">The boundary of the form to send.</param>
+        /// <returns>The new document request.</returns>
+        public static DocumentRequest PostAsMultipart(Url target, Stream formBody, String formBoundary)
+        {
+            _ = formBody ?? throw new ArgumentNullException(nameof(formBody));
+            _ = formBoundary ?? throw new ArgumentNullException(nameof(formBoundary));
+            var enctype = $"{MimeTypeNames.MultipartForm}; boundary={formBoundary}";
+            return Post(target, formBody, enctype);
         }
 
         #endregion

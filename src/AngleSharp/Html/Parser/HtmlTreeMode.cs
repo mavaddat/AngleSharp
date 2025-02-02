@@ -1,9 +1,9 @@
-﻿namespace AngleSharp.Html.Parser
+namespace AngleSharp.Html.Parser
 {
     /// <summary>
     /// Possible insertation mode values.
     /// </summary>
-    enum HtmlTreeMode : byte
+    enum HtmlTreeMode : System.Byte
     {
         /// <summary>
         /// Initial insertation mode.
@@ -92,6 +92,6 @@
         /// <summary>
         /// Once we are far behind the frameset tag.
         /// </summary>
-        AfterAfterFrameset
+        AfterAfterFrameset,
     }
 }

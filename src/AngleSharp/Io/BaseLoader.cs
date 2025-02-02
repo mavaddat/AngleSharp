@@ -34,7 +34,7 @@ namespace AngleSharp.Io
         {
             _context = context;
             _filter = filter ?? (_ => true);
-            _downloads = new List<IDownload>();
+            _downloads = [];
             MaxRedirects = 50;
         }
 
@@ -110,7 +110,7 @@ namespace AngleSharp.Io
                 var task = LoadAsync(request, cancel.Token);
                 var download = new Download(task, cancel, request.Address!, originator);
                 Add(download);
-                task.ContinueWith(m => Remove(download));
+                task.ContinueWith(_ => Remove(download));
                 return download;
             }
             else

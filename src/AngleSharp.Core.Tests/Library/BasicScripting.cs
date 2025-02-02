@@ -14,6 +14,11 @@ namespace AngleSharp.Core.Tests.Library
         [Test]
         public void DocumentWriteDynamicallyWithCustomScriptEngineAndText()
         {
+            if (TestRuntime.UsePrefetchedTextSource)
+            {
+                Assert.Ignore("Prefetched text source is read only");
+            }
+
             var scripting = new CallbackScriptEngine(options => options.Document.Write("<b>Dynamically written</b>"));
             var config = Configuration.Default.WithScripts(scripting);
             var source = "<title>Some title</title><body><script type='c-sharp'>//...</script>";
@@ -127,7 +132,7 @@ namespace AngleSharp.Core.Tests.Library
         {
             var scripting = new CallbackScriptEngine(options =>
             {
-                options.Document.DefaultView.AddEventListener(EventNames.DomContentLoaded, (obj, ev) =>
+                options.Document.DefaultView.AddEventListener(EventNames.DomContentLoaded, (_, _) =>
                 {
                     options.Document.Title = "B";
                 });
@@ -144,7 +149,7 @@ namespace AngleSharp.Core.Tests.Library
         {
             var scripting = new CallbackScriptEngine(options =>
             {
-                options.Document.AddEventListener(EventNames.DomContentLoaded, (obj, ev) =>
+                options.Document.AddEventListener(EventNames.DomContentLoaded, (_, _) =>
                 {
                     options.Document.Title = "B";
                 });
@@ -161,7 +166,7 @@ namespace AngleSharp.Core.Tests.Library
         {
             var scripting = new CallbackScriptEngine(options =>
             {
-                options.Document.DefaultView.AddEventListener(EventNames.Load, (obj, ev) =>
+                options.Document.DefaultView.AddEventListener(EventNames.Load, (_, _) =>
                 {
                     options.Document.Title = "B";
                 });
@@ -178,7 +183,7 @@ namespace AngleSharp.Core.Tests.Library
         {
             var scripting = new CallbackScriptEngine(options =>
             {
-                options.Document.AddEventListener(EventNames.Load, (obj, ev) =>
+                options.Document.AddEventListener(EventNames.Load, (_, _) =>
                 {
                     options.Document.Title = "B";
                 });
@@ -211,7 +216,7 @@ namespace AngleSharp.Core.Tests.Library
         public async Task DynamicallyAddedScriptWithTextContentShouldBeExecutedAfterAppending()
         {
             var didRun = false;
-            var scripting = new CallbackScriptEngine(options => didRun = true);
+            var scripting = new CallbackScriptEngine(_ => didRun = true);
             var config = Configuration.Default.WithScripts(scripting).WithMockRequester();
             var source = "<title>Some title</title><body>";
             var document = await BrowsingContext.New(config).OpenAsync(m => m.Content(source).Address("http://www.example.com"));
@@ -231,7 +236,7 @@ namespace AngleSharp.Core.Tests.Library
         public async Task DynamicallyAddedScriptWithSourceShouldBeExecutedAfterAppending()
         {
             var didRun = false;
-            var scripting = new CallbackScriptEngine(options => didRun = true);
+            var scripting = new CallbackScriptEngine(_ => didRun = true);
             var config = Configuration.Default.WithScripts(scripting).WithMockRequester();
             var source = "<title>Some title</title><body>";
             var document = await BrowsingContext.New(config).OpenAsync(m => m.Content(source).Address("http://www.example.com"));

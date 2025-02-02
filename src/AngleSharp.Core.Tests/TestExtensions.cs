@@ -9,6 +9,7 @@ namespace AngleSharp.Core.Tests
     using NUnit.Framework;
     using System;
     using System.IO;
+    using Text;
 
     static class TestExtensions
     {
@@ -25,7 +26,7 @@ namespace AngleSharp.Core.Tests
 
         public static IConfiguration WithScripting(this IConfiguration config)
         {
-            var service = new CallbackScriptEngine(options => { }, MimeTypeNames.DefaultJavaScript);
+            var service = new CallbackScriptEngine(_ => { }, MimeTypeNames.DefaultJavaScript);
             return config.With(service);
         }
 
@@ -64,11 +65,24 @@ namespace AngleSharp.Core.Tests
             });
         }
 
-        public static IDocument ToHtmlDocument(this String sourceCode, IConfiguration configuration = null)
+        public static IDocument ToHtmlDocument(this String sourceCode, IConfiguration configuration = null, DomEventHandler onError = null)
         {
             var context = BrowsingContext.New(configuration ?? Configuration.Default);
             var htmlParser = context.GetService<IHtmlParser>();
-            return htmlParser.ParseDocument(sourceCode);
+
+            if (onError is not null)
+            {
+                htmlParser.Error += onError;
+            }
+
+            if (TestRuntime.UsePrefetchedTextSource)
+            {
+                return htmlParser.ParseDocument(sourceCode.AsMemory());
+            }
+            else
+            {
+                return htmlParser.ParseDocument(sourceCode);
+            }
         }
 
         public static INodeList ToHtmlFragment(this String sourceCode, IElement contextElement = null, IConfiguration configuration = null)

@@ -4,6 +4,14 @@ section: "AngleSharp.Core"
 ---
 # Migration Guide
 
+## 0.17 to 1.0
+
+From an API perspective the two versions are compatible, however, the ABI is not compatible as some constructors changed (adding new optional arguments etc.). Therefore, a recompilation is necessary before dynamically using 1.0.
+
+## 0.16 to 0.17
+
+The support for .NET Framework 4.6 has been dropped. AngleSharp now works exclusively on .NET 4.6.1 or newer / .NET Standard 2.0. If you use an older framework you'll either need to fork AngleSharp or remain on an older version of AngleSharp.
+
 ## 0.15 to 0.16
 
 The `Url` class has been moved from `AngleSharp` to `AngleSharp.Dom`. Potentially, you'll need to adjust your `using` statements or use of fully qualified names.
@@ -28,7 +36,7 @@ For this change we do not expect any migration work unless a custom implementati
 
 ## 0.10 to 0.11
 
-This release follows the spirit of 0.10 an prepares for the 1.0 later this year. There are mainly additions, but also one important breaking change: We removed everything that is related to AngleSharp.Xml. This is now part of separate library called AngleSharp.Xml.
+This release follows the spirit of 0.10 and prepares for the 1.0 later this year. There are mainly additions, but also one important breaking change: We removed everything that is related to AngleSharp.Xml. This is now part of separate library called AngleSharp.Xml.
 
 ### SVG
 
@@ -60,12 +68,12 @@ In the following points the v0.10 release line will be named "current", while ol
 
 ### Configuration
 
-The way to configure AngleSharp was changed. Earlier, the provided configuration was simply referenced by, e.g., the `BrowsingContext`. Now upon creation the browsing context is doing some evaluation and creates its own copy of the configuration. Thus a configuration can also be seen as a (re-)usable draft for what will become the options to be considered from a browsing context.
+The way to configure AngleSharp was changed. Earlier, the provided configuration was simply referenced by, e.g., the `BrowsingContext`. Now upon creation the browsing context is doing some evaluation and creates its own copy of the configuration. Thus, a configuration can also be seen as a (re-)usable draft for what will become the options to be considered from a browsing context.
 
 The extension methods for working with an `IConfiguration` type of object changed. Along the standard `With` we now also have
 
-- `WithOnly`, which will remove earlier occurances of the same type and
-- `Without`, which will drop any existing occurance of the given type.
+- `WithOnly`, which will remove earlier occurrences of the same type and
+- `Without`, which will drop any existing occurrence of the given type.
 
 Additionally, besides the overloads using a plain object and a specific type of service, we also got a creator overload. This overload features a function `Func<IBrowsingContext, T>` (with `T` being the type of the service) to be used once the configuration is used by a browsing context.
 
@@ -83,21 +91,21 @@ config.WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true })
 
 ### HTML
 
-The unified parser interface has been changed. It is no longer possible to call `Parse`, instead this is now `ParseDocument`. Hence some old code like
+The unified parser interface has been changed. It is no longer possible to call `Parse`, instead this is now `ParseDocument`. Hence, some old code like
 
 ```cs
-var htmlDocument = parser.Parse("");
+IDocument htmlDocument = parser.Parse("");
 ```
 
 is now
 
 ```cs
-var htmlDocument = parser.ParseDocument("");
+IDocument htmlDocument = parser.ParseDocument("");
 ```
 
 Note: Same applies to the `Async` parsing (which is still recommended). Here we now have `ParseDocumentAsync`.
 
-Also the `HtmlParser` does no longer accept an `IConfiguration` in the constructor. In this case we implicitly created an `BrowsingContext`, which we want to avoid to show the user what is really happening. Instead, a browsing context should be passed in now.
+Also, the `HtmlParser` does no longer accept an `IConfiguration` in the constructor. In this case we implicitly created an `BrowsingContext`, which we want to avoid to show the user what is really happening. Instead, a browsing context should be passed in now.
 
 The following old code
 
@@ -108,14 +116,14 @@ var parser = new HtmlParser(Configuration.Default);
 is therefore to be replaced with
 
 ```cs
-var context = BrowsingContext.New(Configuration.Default);
+IBrowsingContext context = BrowsingContext.New(Configuration.Default);
 var parser = new HtmlParser(context);
 ```
 
 but would be much better expressed as
 
 ```cs
-var context = BrowsingContext.New(Configuration.Default);
+IBrowsingContext context = BrowsingContext.New(Configuration.Default);
 var parser = context.GetService<IHtmlParser>();
 ```
 
@@ -129,13 +137,13 @@ The basic usage is to configure AngleSharp using `WithCss`. Then, e.g., the styl
 
 The `ICssStyleDeclaration` does not contain all known declarations as properties. Instead, extension methods are used to dynamically attach these getters and setters, e.g., `GetDisplay()` and `SetDisplay(value)`  instead of `Display { get; set; }`.
 
-Therefore the following old code won't work any more:
+Therefore, the following old code won't work anymore:
 
 ```cs
 ((IHtmlElement)element).Style.Display = "flex";
 ```
 
-Instead we now have to use the AngleSharp.Css NuGet package, which should be used in the configuration like `Configuration.Default.WithCss()`. If all this is fulfilled the following extension method will work:
+Instead, we now have to use the AngleSharp.Css NuGet package, which should be used in the configuration like `Configuration.Default.WithCss()`. If all this is fulfilled the following extension method will work:
 
 ```cs
 ((IHtmlElement)element).Style.SetDisplay("flex");
@@ -148,7 +156,7 @@ In previous versions the `IWindow` also contained CSS methods for style computat
 In AngleSharp v0.9 we can construct an `ISelector` directly like:
 
 ```cs
-CssParser parser = new CssParser();
+var parser = new CssParser();
 ISelector selector = parser.ParseSelector("p > a");
 ```
 
@@ -157,16 +165,16 @@ Starting with AngleSharp v0.10 such direct access should be avoided. The `CssPar
 The current way for accessing this functionality is via the service collection.
 
 ```cs
-var config = Configuration.Default;
+IConfiguration config = Configuration.Default;
 
 // use the consuming (or a new) context
-var context = BrowsingContext.New(config);
+IBrowsingContext context = BrowsingContext.New(config);
 
 // get the registered parser instance
-var parser = context.GetService<ICssSelectorParser>();
+ICssSelectorParser parser = context.GetService<ICssSelectorParser>();
 
 // use as before
-var selector = parser.ParseSelector("foo");
+ISelector selector = parser.ParseSelector("foo");
 ```
 
 Normally, a `BrowsingContext` instance already exists thus making the access much simpler.
@@ -175,7 +183,7 @@ Normally, a `BrowsingContext` instance already exists thus making the access muc
 
 :warn: Currently, `AngleSharp.Scripting.Js` is incompatible with AngleSharp v0.10.
 
-We plan to deprecate this package and release `AngleSharp.Js` instead. In the mean time there is no replacement.
+We plan to deprecate this package and release `AngleSharp.Js` instead. In the meantime there is no replacement.
 
 > Recommendation: Stay at AngleSharp pre-v0.10 for the moment and wait until AngleSharp.Js is released. Sorry for inconvenience!
 

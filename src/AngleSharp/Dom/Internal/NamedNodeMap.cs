@@ -4,15 +4,17 @@ namespace AngleSharp.Dom
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using Common;
+    using Html.Construction;
 
     /// <summary>
     /// NamedNodeNap is a key/value pair of nodes that can be accessed by
     /// numeric or string index.
     /// </summary>
-    sealed class NamedNodeMap : INamedNodeMap
+    sealed class NamedNodeMap : INamedNodeMap, IConstructableNamedNodeMap
     {
         #region Fields
-        
+
         private readonly List<Attr> _items;
         private readonly WeakReference<Element> _owner;
 
@@ -23,7 +25,7 @@ namespace AngleSharp.Dom
         /// <inheritdoc />
         public NamedNodeMap(Element owner)
         {
-            _items = new List<Attr>();
+            _items = [];
             _owner = new WeakReference<Element>(owner);
         }
 
@@ -50,10 +52,7 @@ namespace AngleSharp.Dom
 
         #region Internal Methods
 
-        internal void FastAddItem(Attr attr)
-        {
-            _items.Add(attr);
-        }
+        internal void FastAddItem(Attr attr) => _items.Add(attr);
 
         internal void RaiseChangedEvent(Attr attr, String? newValue, String? oldValue)
         {
@@ -85,10 +84,7 @@ namespace AngleSharp.Dom
             return null;
         }
 
-        internal IAttr? RemoveNamedItemOrDefault(String name)
-        {
-            return RemoveNamedItemOrDefault(name, false);
-        }
+        internal IAttr? RemoveNamedItemOrDefault(String name) => RemoveNamedItemOrDefault(name, false);
 
         internal IAttr? RemoveNamedItemOrDefault(String? namespaceUri, String localName, Boolean suppressMutationObservers)
         {
@@ -112,10 +108,7 @@ namespace AngleSharp.Dom
             return null;
         }
 
-        internal IAttr? RemoveNamedItemOrDefault(String? namespaceUri, String localName)
-        {
-            return RemoveNamedItemOrDefault(namespaceUri, localName, false);
-        }
+        internal IAttr? RemoveNamedItemOrDefault(String? namespaceUri, String localName) => RemoveNamedItemOrDefault(namespaceUri, localName, false);
 
         #endregion
 
@@ -123,6 +116,20 @@ namespace AngleSharp.Dom
 
         /// <inheritdoc />
         public IAttr? GetNamedItem(String name)
+        {
+            for (var i = 0; i < _items.Count; i++)
+            {
+                if (name.Is(_items[i].Name))
+                {
+                    return _items[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <inheritdoc />
+        public IAttr? GetNamedItem(StringOrMemory name)
         {
             for (var i = 0; i < _items.Count; i++)
             {
@@ -214,10 +221,7 @@ namespace AngleSharp.Dom
         }
 
         /// <inheritdoc />
-        public IAttr? SetNamedItemWithNamespaceUri(IAttr item)
-        {
-            return SetNamedItemWithNamespaceUri(item, false);
-        }
+        public IAttr? SetNamedItemWithNamespaceUri(IAttr item) => SetNamedItemWithNamespaceUri(item, false);
 
         /// <inheritdoc />
         public IAttr RemoveNamedItem(String name)
@@ -245,17 +249,12 @@ namespace AngleSharp.Dom
             return result;
         }
 
-        /// <inheritdoc />
-        public IEnumerator<IAttr> GetEnumerator()
-        {
-            return _items.GetEnumerator();
-        }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _items.GetEnumerator();
-        }
-        
+        /// <inheritdoc />
+        public IEnumerator<IAttr> GetEnumerator() => _items.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => _items.GetEnumerator();
+
         #endregion
 
         #region Helpers
@@ -281,6 +280,50 @@ namespace AngleSharp.Dom
 
             return attr;
         }
+
+        #endregion
+
+        #region Construction
+
+        IConstructableAttr? IConstructableNamedNodeMap.this[StringOrMemory name]
+        {
+            get
+            {
+                for (var i = 0; i < _items.Count; i++)
+                {
+                    if (name.Is(_items[i].Name))
+                    {
+                        return _items[i];
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        Boolean IConstructableNamedNodeMap.SameAs(IConstructableNamedNodeMap? attributes)
+        {
+            if (attributes is null || attributes.Length != Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < Length; i++)
+            {
+                var attr = _items[i];
+                var other = attributes[attr.Name];
+
+                if (other is null || !attr.Value.Is(other.Value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // IEnumerator<IConstructableAttr> IEnumerable<IConstructableAttr>.GetEnumerator() =>
+        //     _items.GetEnumerator();
 
         #endregion
     }

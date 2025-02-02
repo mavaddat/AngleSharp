@@ -5,11 +5,15 @@ namespace AngleSharp.Dom
     using AngleSharp.Text;
     using System;
     using System.Linq;
+    using Common;
+    using Html.Construction;
+    using Html.Parser;
+    using Html.Parser.Tokens.Struct;
 
     /// <summary>
     /// Represents an element node.
     /// </summary>
-    public abstract class Element : Node, IElement
+    public abstract class Element : Node, IElement, IConstructableElement
     {
         #region Fields
 
@@ -74,6 +78,9 @@ namespace AngleSharp.Dom
 
         /// <inheritdoc />
         public String? NamespaceUri => _namespace ?? this.GetNamespaceUri();
+
+        /// <inheritdoc />
+        public String? GivenNamespaceUri => _namespace;
 
         /// <inheritdoc />
         public override String TextContent
@@ -397,6 +404,17 @@ namespace AngleSharp.Dom
         }
 
         /// <inheritdoc />
+        public Boolean HasAttribute(StringOrMemory name)
+        {
+            if (_namespace.Is(NamespaceNames.HtmlUri))
+            {
+                name = name.HtmlLower();
+            }
+
+            return _attributes.GetNamedItem(name) != null;
+        }
+
+        /// <inheritdoc />
         public Boolean HasAttribute(String? namespaceUri, String localName)
         {
             if (String.IsNullOrEmpty(namespaceUri))
@@ -430,7 +448,7 @@ namespace AngleSharp.Dom
         }
 
         /// <inheritdoc />
-        public void SetAttribute(String name, String value)
+        public void SetAttribute(String name, String? value)
         {
             if (value != null)
             {
@@ -453,7 +471,7 @@ namespace AngleSharp.Dom
         }
 
         /// <inheritdoc />
-        public void SetAttribute(String? namespaceUri, String name, String value)
+        public void SetAttribute(String? namespaceUri, String name, String? value)
         {
             if (value != null)
             {
@@ -643,6 +661,53 @@ namespace AngleSharp.Dom
 
             element.SetupElement();
         }
+
+        #endregion
+
+        #region Construction
+
+        StringOrMemory IConstructableElement.LocalName => _localName;
+
+        IConstructableNamedNodeMap IConstructableElement.Attributes => _attributes;
+
+        StringOrMemory IConstructableElement.NamespaceUri => NamespaceUri ?? "";
+
+        void IConstructableElement.SetAttribute(String? ns, StringOrMemory name, StringOrMemory value)
+        {
+            SetAttribute(ns, name.ToString(), value.ToString());
+        }
+
+        void IConstructableElement.SetOwnAttribute(StringOrMemory name, StringOrMemory value)
+        {
+            this.SetOwnAttribute(name.ToString(), value.ToString());
+        }
+
+        StringOrMemory IConstructableElement.GetAttribute(StringOrMemory @namespace, StringOrMemory name)
+        {
+            var result = GetAttribute(@namespace.ToString(), name.ToString());
+            return result ?? StringOrMemory.Empty;
+        }
+
+        void IConstructableElement.SetAttributes(StructAttributes tagAttributes)
+        {
+            var container = Attributes;
+
+            for (var i = 0; i < tagAttributes.Count; i++)
+            {
+                var attribute = tagAttributes[i];
+                var item = new Attr(attribute.Name.ToString(), attribute.Value.ToString());
+                item.Container = container;
+                container.FastAddItem(item);
+            }
+        }
+
+        void IConstructableElement.SetupElement() => SetupElement();
+
+        void IConstructableElement.AddComment(ref StructHtmlToken token) => this.AddComment(ref token);
+
+        IConstructableNode IConstructableElement.ShallowCopy() => Clone(Owner, false);
+
+        StringOrMemory IConstructableElement.Prefix => Prefix ?? StringOrMemory.Empty;
 
         #endregion
     }

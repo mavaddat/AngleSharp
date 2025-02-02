@@ -29,11 +29,11 @@ namespace AngleSharp.Dom
                 throw new ArgumentNullException(nameof(document));
             }
 
-            var type = typeof(BrowsingContext).Assembly.GetTypes()
-                .Where(m => !m.IsAbstract && m.GetInterfaces().Contains(typeof(TElement)))
-                .FirstOrDefault();
+            var type = typeof(BrowsingContext).Assembly
+                .GetTypes()
+                .FirstOrDefault(m => !m.IsAbstract && m.GetInterfaces().Contains(typeof(TElement)));
 
-            if (type != null)
+            if (type is not null)
             {
                 var ctors = type.GetConstructors()
                     .OrderBy(m => m.GetParameters().Length);
@@ -51,7 +51,7 @@ namespace AngleSharp.Dom
 
                     var obj = ctor.Invoke(arguments);
 
-                    if (obj != null)
+                    if (obj is not null)
                     {
                         var element = (TElement)obj;
                         var baseElement = element as Element;
@@ -91,7 +91,7 @@ namespace AngleSharp.Dom
         /// </param>
         /// <param name="action">The action that should be invoked.</param>
         internal static void QueueTask(this Document document, Action action) =>
-            document.Loop!.Enqueue(action);
+            document.Loop.Enqueue(action);
 
         /// <summary>
         /// Queues an action in the event loop of the document,
@@ -102,7 +102,7 @@ namespace AngleSharp.Dom
         /// </param>
         /// <param name="action">The action that should be invoked.</param>
         internal static Task QueueTaskAsync(this Document document, Action<CancellationToken> action) =>
-            document.Loop!.EnqueueAsync(_ =>
+            document.Loop.EnqueueAsync(_ =>
             {
                 action(_);
                 return true;
@@ -117,7 +117,7 @@ namespace AngleSharp.Dom
         /// </param>
         /// <param name="func">The function that should be invoked.</param>
         internal static Task<T> QueueTaskAsync<T>(this Document document, Func<CancellationToken, T> func) =>
-            document.Loop!.EnqueueAsync(func);
+            document.Loop.EnqueueAsync(func);
 
         /// <summary>
         /// Queues a mutation record for the corresponding observers.
@@ -144,7 +144,7 @@ namespace AngleSharp.Dom
                         if (options.IsInvalid ||
                            (node != record.Target && !options.IsObservingSubtree) ||
                            (record.IsAttribute && !options.IsObservingAttributes) ||
-                           (record.IsAttribute && options.AttributeFilters != null && (!options.AttributeFilters.Contains(record.AttributeName) || record.AttributeNamespace != null)) ||
+                           (record.IsAttribute && options.AttributeFilters is not null && (!options.AttributeFilters.Contains(record.AttributeName) || record.AttributeNamespace is not null)) ||
                            (record.IsCharacterData && !options.IsObservingCharacterData) ||
                            (record.IsChildList && !options.IsObservingChildNodes))
                         {
@@ -158,7 +158,7 @@ namespace AngleSharp.Dom
                         }
                     }
 
-                    if (clearPreviousValue != null)
+                    if (clearPreviousValue is not null)
                     {
                         observer.Enqueue(record.Copy(clearPreviousValue.Value));
                     }
@@ -202,7 +202,7 @@ namespace AngleSharp.Dom
                     //TODO
                     // Replace by algorithm to resolve the value of that attribute
                     // to an absolute URL, relative to the newly created element.
-                    var CanResolve = new Predicate<String>(str => false);
+                    var CanResolve = new Predicate<String>(_ => false);
 
                     if (manifest is { Length: > 0 } && CanResolve(manifest))
                     {

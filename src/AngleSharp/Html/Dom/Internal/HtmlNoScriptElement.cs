@@ -1,4 +1,4 @@
-﻿namespace AngleSharp.Html.Dom
+namespace AngleSharp.Html.Dom
 {
     using AngleSharp.Dom;
     using System;
@@ -8,9 +8,19 @@
     /// </summary>
     sealed class HtmlNoScriptElement : HtmlElement
     {
-        public HtmlNoScriptElement(Document owner, String? prefix = null)
-            : base(owner, TagNames.NoScript, prefix, NodeFlags.Special | NodeFlags.LiteralText)
+        public HtmlNoScriptElement(Document owner, String? prefix = null, Boolean? scripting = false)
+            : base(owner, TagNames.NoScript, prefix, GetFlags(scripting ?? owner.Context.IsScripting()))
         {
+        }
+
+        private static NodeFlags GetFlags(Boolean scripting)
+        {
+            if (scripting)
+            {
+                return NodeFlags.Special | NodeFlags.LiteralText;
+            }
+
+            return NodeFlags.Special;
         }
     }
 }

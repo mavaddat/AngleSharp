@@ -305,7 +305,7 @@ namespace AngleSharp.Html.Dom
         }
 
         internal override FormControlState SaveControlState() =>
-            new FormControlState(Name!, Type, Value);
+            new(Name!, Type, Value);
 
         internal override void RestoreFormControlState(FormControlState state)
         {
@@ -318,12 +318,6 @@ namespace AngleSharp.Html.Dom
         public void StepUp(Int32 n = 1) => _type!.DoStep(n);
 
         public void StepDown(Int32 n = 1) => _type!.DoStep(-n);
-
-        #endregion
-
-        #region Internal Properties
-
-        internal Boolean IsMutable => !IsDisabled && !IsReadOnly;
 
         #endregion
 

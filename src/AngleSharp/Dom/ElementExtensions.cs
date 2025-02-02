@@ -15,6 +15,7 @@ namespace AngleSharp.Dom
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Html.Construction;
 
     /// <summary>
     /// Useful methods for element objects.
@@ -53,21 +54,12 @@ namespace AngleSharp.Dom
         /// <returns>The url of the namespace or null, if the prefix could not be found.</returns>
         public static String? LocateNamespaceFor(this IElement element, String prefix)
         {
-            var ns = element.NamespaceUri;
+            var ns = element.GivenNamespaceUri;
             var px = element.Prefix;
 
             if (String.IsNullOrEmpty(ns) || !px.Is(prefix))
             {
-                var success = false;
-
-                if (prefix is null)
-                {
-                    success = element.TryLocateStandardNamespace(out ns);
-                }
-                else
-                {
-                    success = element.TryLocateCustomNamespace(prefix, out ns);
-                }
+                var success = prefix is not null ? element.TryLocateCustomNamespace(prefix, out ns) : element.TryLocateStandardNamespace(out ns);
 
                 if (!success)
                 {
@@ -86,24 +78,13 @@ namespace AngleSharp.Dom
         public static String? GetNamespaceUri(this IElement element)
         {
             var prefix = element.Prefix;
-            var success = false;
-            var ns = String.Empty;
 
-            if (prefix is null)
+            if (prefix is not null ? element.TryLocateCustomNamespace(prefix, out var ns) : element.TryLocateStandardNamespace(out ns))
             {
-                success = element.TryLocateStandardNamespace(out ns);
-            }
-            else
-            {
-                success = element.TryLocateCustomNamespace(prefix, out ns);
+                return ns;
             }
 
-            if (!success)
-            {
-                ns = element.ParentElement?.LocateNamespaceFor(prefix!);
-            }
-
-            return ns;
+            return element.ParentElement?.LocateNamespaceFor(prefix!);
         }
 
         /// <summary>
@@ -170,10 +151,7 @@ namespace AngleSharp.Dom
         /// <param name="element">The element creating a request.</param>
         /// <param name="url">The address that specifies the target.</param>
         /// <returns>The new resource request with the information.</returns>
-        public static ResourceRequest CreateRequestFor(this IElement element, Url url)
-        {
-            return new ResourceRequest(element, url);
-        }
+        public static ResourceRequest CreateRequestFor(this IElement element, Url url) => new(element, url);
 
         /// <summary>
         /// Checks if the element with the provided prefix matches the CSS
@@ -208,15 +186,16 @@ namespace AngleSharp.Dom
         public static String? GetCssNamespace(this IElement el, String prefix) => el.Owner?.StyleSheets.LocateNamespace(prefix) ?? el.LocateNamespaceFor(prefix);
 
         /// <summary>
-        /// Checks if the element is currently hovered.
+        /// Checks if the element is currently hovered. Not implemented, and
+        /// will always return false.
         /// </summary>
         /// <param name="element">The element to check.</param>
         /// <returns>True if the element is currently hovered, otherwise false.</returns>
-        public static Boolean IsHovered(this IElement element)
-        {
-            //TODO Connection to Visual Tree ?
-            return false;
-        }
+        /// <remarks>
+        /// Calls to this method will always return false as there is no renderer
+        /// and, therefore, the element can never be hovered.
+        /// </remarks>
+        public static Boolean IsHovered(this IElement element) => false;
 
         /// <summary>
         /// Checks if the element is the only of its type among the parent's children.
@@ -308,32 +287,32 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently enabled, otherwise false.</returns>
         public static Boolean IsEnabled(this IElement element)
         {
-            if (element is HtmlAnchorElement or HtmlAreaElement or HtmlLinkElement)
+            if (element is IHtmlAnchorElement or IHtmlAreaElement or IHtmlLinkElement)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
                 return !String.IsNullOrEmpty(href);
             }
-            else if (element is HtmlButtonElement buttonElement)
+            else if (element is IHtmlButtonElement buttonElement)
             {
                 return !buttonElement.IsDisabled;
             }
-            else if (element is HtmlInputElement inputElement)
+            else if (element is IHtmlInputElement inputElement)
             {
                 return !inputElement.IsDisabled;
             }
-            else if (element is HtmlSelectElement selectElement)
+            else if (element is IHtmlSelectElement selectElement)
             {
                 return !selectElement.IsDisabled;
             }
-            else if (element is HtmlTextAreaElement textAreaElement)
+            else if (element is IHtmlTextAreaElement textAreaElement)
             {
                 return !textAreaElement.IsDisabled;
             }
-            else if (element is HtmlOptionElement optionElement)
+            else if (element is IHtmlOptionElement optionElement)
             {
                 return !optionElement.IsDisabled;
             }
-            else if (element is HtmlOptionsGroupElement or HtmlMenuItemElement or HtmlFieldSetElement)
+            else if (element is IHtmlOptionsGroupElement or IHtmlMenuItemElement or IHtmlFieldSetElement)
             {
                 var isDisabled = element.GetAttribute(null, AttributeNames.Disabled);
                 return String.IsNullOrEmpty(isDisabled);
@@ -349,27 +328,27 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently disabled, otherwise false.</returns>
         public static Boolean IsDisabled(this IElement element)
         {
-            if (element is HtmlButtonElement buttonElement)
+            if (element is IHtmlButtonElement buttonElement)
             {
                 return buttonElement.IsDisabled;
             }
-            else if (element is HtmlInputElement inputElement)
+            else if (element is IHtmlInputElement inputElement)
             {
                 return inputElement.IsDisabled;
             }
-            else if (element is HtmlSelectElement selectElement)
+            else if (element is IHtmlSelectElement selectElement)
             {
                 return selectElement.IsDisabled;
             }
-            else if (element is HtmlTextAreaElement textAreaElement)
+            else if (element is IHtmlTextAreaElement textAreaElement)
             {
                 return textAreaElement.IsDisabled;
             }
-            else if (element is HtmlOptionElement optionElement)
+            else if (element is IHtmlOptionElement optionElement)
             {
                 return optionElement.IsDisabled;
             }
-            else if (element is HtmlOptionsGroupElement or HtmlMenuItemElement or HtmlFieldSetElement)
+            else if (element is IHtmlOptionsGroupElement or IHtmlMenuItemElement or IHtmlFieldSetElement)
             {
                 var isDisabled = element.GetAttribute(null, AttributeNames.Disabled);
                 return !String.IsNullOrEmpty(isDisabled);
@@ -385,7 +364,7 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently in its default state, otherwise false.</returns>
         public static Boolean IsDefault(this IElement element)
         {
-            if (element is HtmlButtonElement buttonElement)
+            if (element is IHtmlButtonElement buttonElement)
             {
                 var form = buttonElement.Form;
 
@@ -395,7 +374,7 @@ namespace AngleSharp.Dom
                     return true;
                 }
             }
-            else if (element is HtmlInputElement inputElement)
+            else if (element is IHtmlInputElement inputElement)
             {
                 var type = inputElement.Type;
 
@@ -414,7 +393,7 @@ namespace AngleSharp.Dom
                     //TODO input that are checked and can be checked ...
                 }
             }
-            else if (element is HtmlOptionElement)
+            else if (element is IHtmlOptionElement)
             {
                 var value = element.GetAttribute(null, AttributeNames.Selected);
                 return !String.IsNullOrEmpty(value);
@@ -442,19 +421,19 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently checked, otherwise false.</returns>
         public static Boolean IsChecked(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 var type = input.Type;
                 var canBeChecked = type.IsOneOf(InputTypeNames.Checkbox, InputTypeNames.Radio);
                 return canBeChecked && input.IsChecked;
             }
-            else if (element is HtmlMenuItemElement menuItem)
+            else if (element is IHtmlMenuItemElement menuItem)
             {
                 var type = menuItem.Type;
                 var canBeChecked = type.IsOneOf(InputTypeNames.Checkbox, InputTypeNames.Radio);
                 return canBeChecked && menuItem.IsChecked;
             }
-            else if (element is HtmlOptionElement option)
+            else if (element is IHtmlOptionElement option)
             {
                 return option.IsSelected;
             }
@@ -469,12 +448,12 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently indeterminate, otherwise false.</returns>
         public static Boolean IsIndeterminate(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 var isCheckbox = input.Type.Is(InputTypeNames.Checkbox);
                 return isCheckbox && input.IsIndeterminate;
             }
-            else if (element is HtmlProgressElement)
+            else if (element is IHtmlProgressElement)
             {
                 var value = element.GetAttribute(null, AttributeNames.Value);
                 return String.IsNullOrEmpty(value);
@@ -490,7 +469,7 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently showing a placeholder, otherwise false.</returns>
         public static Boolean IsPlaceholderShown(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 var containsPlaceholder = !String.IsNullOrEmpty(input.Placeholder);
                 var isEmpty = String.IsNullOrEmpty(input.Value);
@@ -507,19 +486,19 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently unchecked, otherwise false.</returns>
         public static Boolean IsUnchecked(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 var type = input.Type;
                 var canBeChecked = type.IsOneOf(InputTypeNames.Checkbox, InputTypeNames.Radio);
                 return canBeChecked && !input.IsChecked;
             }
-            else if (element is HtmlMenuItemElement menuItem)
+            else if (element is IHtmlMenuItemElement menuItem)
             {
                 var type = menuItem.Type;
                 var canBeChecked = type.IsOneOf(InputTypeNames.Checkbox, InputTypeNames.Radio);
                 return canBeChecked && !menuItem.IsChecked;
             }
-            else if (element is HtmlOptionElement option)
+            else if (element is IHtmlOptionElement option)
             {
                 return !option.IsSelected;
             }
@@ -534,34 +513,34 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is currently active, otherwise false.</returns>
         public static Boolean IsActive(this IElement element)
         {
-            if (element is HtmlAnchorElement anchor)
+            if (element is IHtmlAnchorElement anchor)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && anchor.IsActive;
+                return !String.IsNullOrEmpty(href) && CheckActive(anchor);
             }
-            else if (element is HtmlAreaElement area)
+            else if (element is IHtmlAreaElement area)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && area.IsActive;
+                return !String.IsNullOrEmpty(href) && CheckActive(area);
             }
-            else if (element is HtmlLinkElement link)
+            else if (element is IHtmlLinkElement link)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && link.IsActive;
+                return !String.IsNullOrEmpty(href) && CheckActive(link);
             }
-            else if (element is HtmlButtonElement button)
+            else if (element is IHtmlButtonElement button)
             {
-                return !button.IsDisabled && button.IsActive;
+                return !button.IsDisabled && CheckActive(button);
             }
-            else if (element is HtmlInputElement input)
+            else if (element is IHtmlInputElement input)
             {
                 var type = input.Type;
                 var canBeSubmitted = type.IsOneOf(InputTypeNames.Submit, InputTypeNames.Image, InputTypeNames.Reset, InputTypeNames.Button);
-                return canBeSubmitted && input.IsActive;
+                return canBeSubmitted && CheckActive(input);
             }
             else if (element is HtmlMenuItemElement menuItem)
             {
-                return !menuItem.IsDisabled && menuItem.IsActive;
+                return !menuItem.IsDisabled && CheckActive(menuItem);
             }
 
             return false;
@@ -574,24 +553,48 @@ namespace AngleSharp.Dom
         /// <returns>True if the element has been visited, otherwise false.</returns>
         public static Boolean IsVisited(this IElement element)
         {
-            if (element is HtmlAnchorElement anchor)
+            if (element is IHtmlAnchorElement anchor)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && anchor.IsVisited;
+                return !String.IsNullOrEmpty(href) && CheckVisited(anchor);
             }
-            else if (element is HtmlAreaElement area)
+            else if (element is IHtmlAreaElement area)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && area.IsVisited;
+                return !String.IsNullOrEmpty(href) && CheckVisited(area);
             }
-            else if (element is HtmlLinkElement link)
+            else if (element is IHtmlLinkElement link)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && link.IsVisited;
+                return !String.IsNullOrEmpty(href) && CheckVisited(link);
             }
 
             return false;
         }
+
+        /// <summary>
+        /// Checks if the given element is currently active. Not implemented, and
+        /// will always return false.
+        /// </summary>
+        /// <param name="element">The element to inspect.</param>
+        /// <returns>True if the element is active, otherwise false.</returns>
+        /// <remarks>
+        /// Calls to this method will always return false as there is no renderer
+        /// and, therefore, the element is never active.
+        /// </remarks>
+        private static Boolean CheckActive(IElement element) => false;
+
+        /// <summary>
+        /// Checks if the given element was visited previously. Not implemented, and
+        /// will always return false.
+        /// </summary>
+        /// <param name="element">The element to inspect.</param>
+        /// <returns>True if the element was previously visited, otherwise false.</returns>
+        /// <remarks>
+        /// Calls to this method will always return false as there is no renderer
+        /// and, therefore, the element can never have been visisted.
+        /// </remarks>
+        private static Boolean CheckVisited(IElement element) => false;
 
         /// <summary>
         /// Checks if the element is a link.
@@ -600,20 +603,20 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is a link, otherwise false.</returns>
         public static Boolean IsLink(this IElement element)
         {
-            if (element is HtmlAnchorElement anchor)
+            if (element is IHtmlAnchorElement anchor)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !anchor.IsVisited;
+                return !String.IsNullOrEmpty(href) && !anchor.IsVisited();
             }
-            else if (element is HtmlAreaElement area)
+            else if (element is IHtmlAreaElement area)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !area.IsVisited;
+                return !String.IsNullOrEmpty(href) && !area.IsVisited();
             }
-            else if (element is HtmlLinkElement link)
+            else if (element is IHtmlLinkElement link)
             {
                 var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !link.IsVisited;
+                return !String.IsNullOrEmpty(href) && !link.IsVisited();
             }
 
             return false;
@@ -633,15 +636,15 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is optional, otherwise false.</returns>
         public static Boolean IsOptional(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 return !input.IsRequired;
             }
-            else if (element is HtmlSelectElement select)
+            else if (element is IHtmlSelectElement select)
             {
                 return !select.IsRequired;
             }
-            else if (element is HtmlTextAreaElement area)
+            else if (element is IHtmlTextAreaElement area)
             {
                 return !area.IsRequired;
             }
@@ -650,21 +653,33 @@ namespace AngleSharp.Dom
         }
 
         /// <summary>
+        /// Checks if the element is visible on screen. Not implemented, and
+        /// will always return false.
+        /// </summary>
+        /// <param name="element">The element to check.</param>
+        /// <returns>True if the element is visible, otherwise false.</returns>
+        /// <remarks>
+        /// Calls to this method will always return false as there is no renderer
+        /// and, therefore, the element is never visible.
+        /// </remarks>
+        public static Boolean IsVisible(this IElement element) => false;
+
+        /// <summary>
         /// Checks if the element is required and must be filled out.
         /// </summary>
         /// <param name="element">The element to check.</param>
         /// <returns>True if the element is required, otherwise false.</returns>
         public static Boolean IsRequired(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
                 return input.IsRequired;
             }
-            else if (element is HtmlSelectElement select)
+            else if (element is IHtmlSelectElement select)
             {
                 return select.IsRequired;
             }
-            else if (element is HtmlTextAreaElement textArea)
+            else if (element is IHtmlTextAreaElement textArea)
             {
                 return textArea.IsRequired;
             }
@@ -683,7 +698,7 @@ namespace AngleSharp.Dom
             {
                 return !validator.CheckValidity();
             }
-            else if (element is HtmlFormElement form)
+            else if (element is IHtmlFormElement form)
             {
                 return !form.CheckValidity();
             }
@@ -702,7 +717,7 @@ namespace AngleSharp.Dom
             {
                 return validator.CheckValidity();
             }
-            else if (element is HtmlFormElement form)
+            else if (element is IHtmlFormElement form)
             {
                 return form.CheckValidity();
             }
@@ -717,13 +732,13 @@ namespace AngleSharp.Dom
         /// <returns>True if the element is readonly, otherwise false.</returns>
         public static Boolean IsReadOnly(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
-                return !input.IsMutable;
+                return !input.IsMutable();
             }
-            else if (element is HtmlTextAreaElement textArea)
+            else if (element is IHtmlTextAreaElement textArea)
             {
-                return !textArea.IsMutable;
+                return !textArea.IsMutable();
             }
             else if (element is IHtmlElement general)
             {
@@ -734,19 +749,33 @@ namespace AngleSharp.Dom
         }
 
         /// <summary>
+        /// Checks if the input can be changed.
+        /// </summary>
+        /// <param name="input">The input to check.</param>
+        /// <returns>True if the element is mutable, otherwise false.</returns>
+        public static Boolean IsMutable(this IHtmlInputElement input) => !input.IsDisabled && !input.IsReadOnly;
+
+        /// <summary>
+        /// Checks if the textarea can be changed.
+        /// </summary>
+        /// <param name="textArea">The area to check.</param>
+        /// <returns>True if the element is mutable, otherwise false.</returns>
+        public static Boolean IsMutable(this IHtmlTextAreaElement textArea) => !textArea.IsDisabled && !textArea.IsReadOnly;
+
+        /// <summary>
         /// Checks if the element is editable.
         /// </summary>
         /// <param name="element">The element to check.</param>
         /// <returns>True if the element can be edited, otherwise false.</returns>
         public static Boolean IsEditable(this IElement element)
         {
-            if (element is HtmlInputElement input)
+            if (element is IHtmlInputElement input)
             {
-                return input.IsMutable;
+                return input.IsMutable();
             }
-            else if (element is HtmlTextAreaElement textArea)
+            else if (element is IHtmlTextAreaElement textArea)
             {
-                return textArea.IsMutable;
+                return textArea.IsMutable();
             }
             else if (element is IHtmlElement general)
             {
@@ -1476,7 +1505,8 @@ namespace AngleSharp.Dom
         /// <param name="name">The name of the attribute.</param>
         /// <param name="value">The attribute's value.</param>
         /// <param name="suppressCallbacks">Flag to suppress callbacks.</param>
-        internal static void SetOwnAttribute(this Element element, String name, String? value, Boolean suppressCallbacks = false) => element.Attributes.SetNamedItemWithNamespaceUri(new Attr(name, value!), suppressCallbacks);
+        internal static void SetOwnAttribute(this Element element, String name, String? value, Boolean suppressCallbacks = false) =>
+            element.Attributes.SetNamedItemWithNamespaceUri(new Attr(name, value!), suppressCallbacks);
 
         private static IDocumentFragment CreateFragment(this IElement context, String html)
         {
@@ -1565,6 +1595,26 @@ namespace AngleSharp.Dom
         }
 
         /// <summary>
+        /// Returns the property attribute. Widely used for meta tags for Open Graph protocols
+        /// </summary>
+        /// <param name="element"></param>
+        /// <returns>The value of property attribute</returns>
+        public static String? GetProperty(this IHtmlMetaElement element)
+        {
+            return element.GetAttribute("property");
+        }
+
+        /// <summary>
+        /// Sets the property value
+        /// </summary>
+        /// <param name="element"></param>
+        /// <param name="value"></param>
+        public static void SetProperty(this IHtmlMetaElement element, String value)
+        {
+            element.SetAttribute("property", value);
+        }
+
+        /// <summary>
         /// Parses the HTML subtree of the given content in the context of
         /// the provided element.
         /// </summary>
@@ -1576,13 +1626,13 @@ namespace AngleSharp.Dom
             var context = element.Context;
             var source = new TextSource(html);
             var document = new HtmlDocument(context, source);
-            var parser = new HtmlDomBuilder(document);
             var options = new HtmlParserOptions
             {
                 IsEmbedded = false,
                 IsStrictMode = false,
                 IsScripting = context.IsScripting(),
             };
+            var parser = new HtmlDomBuilder(HtmlDomConstructionFactory.Instance, document, new HtmlTokenizerOptions(options));
             return parser.ParseFragment(options, element).DocumentElement;
         }
     }

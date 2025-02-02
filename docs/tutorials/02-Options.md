@@ -21,7 +21,7 @@ var parser = new HtmlParser(new HtmlParserOptions
     IsNotConsumingCharacterReferences = true,
 });
 var html = "<html><head></head><body><p>&amp;foo</p></body></html>";
-var document = parser.ParseDocument(html);
+IDocument document = parser.ParseDocument(html);
 Console.WriteLine(document.DocumentElement.ToHtml(formatter));
 ```
 
@@ -60,7 +60,7 @@ For serialization (e.g., `InnerHtml` use, or more explicit via `ToHtml`), howeve
 
 ## `IsKeepingSourceReferences`
 
-`IsKeepingSourceReferences` option decides whether or not to keep positional information or reference on a text source to be serialized.
+`IsKeepingSourceReferences` option decides whether to keep positional information or reference on a text source to be serialized.
 For serialization, we would have no way or response of source reference of any selected element of a document.
 
 Example of this option be:
@@ -71,7 +71,7 @@ var parser = new HtmlParser(new HtmlParserOptions
     IsKeepingSourceReferences = false
 });
 var html = "<html><head></head><body><p>foo</p></body></html>";
-var document = parser.ParseDocument(html);
+IDocument document = parser.ParseDocument(html);
 Console.WriteLine(document.QuerySelector("a").SourceReference?.Position.ToString());
 ```
 
@@ -88,7 +88,7 @@ document = parser.ParseDocument(document.Prettify());
 And we would get `Ln 4, Col 3, Pos 33`
 
 ## `IsSupportingProcessingInstructions`
-`IsSupportingProcessingInstructions` option causes the parset to emit ProcessingInstruction nodes whenever `<? ... >` tokens are encountered, those are an SGML and XML node types intended to carry instructions to the application.
+`IsSupportingProcessingInstructions` option causes the parser to emit `ProcessingInstruction` nodes whenever `<? ... >` tokens are encountered, those are an SGML and XML node types intended to carry instructions to the application.
 
 SGML PI is enclosed within `<?` and `>`, while XML PI is enclosed within `<?` and `?>`.
 
@@ -99,12 +99,12 @@ var parser = new HtmlParser(new HtmlParserOptions
     IsSupportingProcessingInstructions = true
 });
 var html = "<html><head></head><body><p><?xml version=\"1.0\" encoding=\"UTF - 8\" ?></p></body></html>";
-var document = parser.ParseDocument(html);
+IDocument document = parser.ParseDocument(html);
 Console.WriteLine(document.DocumentElement.ToHtml());
 ```
 
 this gives the `<html><head></head><body><p><??xml version=\"1.0\" encoding=\"UTF - 8\" ?></p></body></html>` response as we have enabled the PI support option.
-Otherwise we would get a comment node enclosing the issued PI node: `"<html><head></head><body><p><!--<?xml version=\"1.0\" encoding=\"UTF - 8\" ?>--></p></body></html>"`
+Otherwise, we would get a comment node enclosing the issued PI node: `"<html><head></head><body><p><!--<?xml version=\"1.0\" encoding=\"UTF - 8\" ?>--></p></body></html>"`
 
 ## `OnCreated`
 
@@ -122,32 +122,110 @@ var parser = new HtmlParser(new HtmlParserOptions
     }
 });
 var html = "<html><head></head><body><p>foo</p></body></html>";
-var document = parser.ParseDocument(html);
+IDocument document = parser.ParseDocument(html);
 Console.WriteLine(document.DocumentElement.ToHtml());
 ```
 
 Which would give us a reformatted html string based on position range \[25, 35\) and element `<p>` within that range being formatted `<html><head></head><body><p>foo bar</p></body></html>`
 
-In general it would not be expected to pass this option in one parsing for a big enough text as it would take more time to process it.
+In general, it would not be expected to pass this option in one parsing for a big enough text as it would take more time to process it.
 
 ## `IsStrictMode`
-"strict mode" directive from JavaScript's ES5 is represented by `IsStrictMode` option in this case.
-Simply put, setting this option as true in $HtmlParserOptions$ informs the parser that any JS code that it will include will have a "strict mode" applied in it.
 
-The following code will give us an HtmlParseException
+"strict mode" directive from JavaScript's ES5 is represented by `IsStrictMode` option in this case. Simply put, setting this option as true in $HtmlParserOptions$ informs the parser that any JS code that it will include will have a "strict mode" applied in it.
+
+The following code will give us an `HtmlParseException`
+
 ```cs
 var parser = new HtmlParser(new HtmlParserOptions
 {
     IsStrictMode = true
 });
 var html = "<html><head></head><body><script>x = 0;</script><p>foo</p></body></html>";
-var document = parser.ParseDocument(html);
+IDocument document = parser.ParseDocument(html);
 Console.WriteLine(document.DocumentElement.ToHtml());
 ```
-In this case we had strict mode on so we had to declare `x` as `let x` instead for example.
 
-By default strict mode is false and we would get the response as expected.
+In this case we had strict mode on, so we had to declare `x` as `let x` instead for example.
+
+By default, strict mode is false, and we would get the response as expected.
 
 ## `IsEmbedded`, `IsNotSupportingFrames`, and `IsScripting`
 
-(tbd)
+The `IsEmbedded` option allows you to use the HTML parser with the content being assumed to be embedded in a valid HTML document already. This is used to determine if a doctype is needed. In embedded mode the doctype can be missing without entering the quirks mode.
+
+Likewise, the `IsNotSupportingFrames` option can be used to act as if frames are not allowed. When actual `frameset` or similar tags are hit, then tags such as `noframes` are interpreted differently (i.e., as if they would not exist). As of today, most browsers still support frames - even though they should not be used anymore. Note that frames do not include `<iframe>`, which is not impacted by this flag.
+
+The `IsScripting` option emulates the behavior of the browser when parsing the `innerHTML`. Without scripting the `noscript` and `script` tag change places. Here, the `noscript` tag will be evaluated (instead of being ignored). Additionally, the content of the `script` tag will be ignored. Enable `IsScripting` to - from a parsing perspective - see the page as JavaScript-enabled browser would do.
+
+**Remark**: Turning on the `IsScripting` option and having a JavaScript engine integrated (e.g., from *AngleSharp.Js*) is not the same. AngleSharp will actually turn on the `IsScripting` automatically when it finds that a JavaScript engine has been included.
+
+## `IsAcceptingCustomElementsEverywhere`
+
+The `IsAcceptingCustomElementsEverywhere` option allows custom elements such as `my-element` to be used in locations where they are usually forbidden.
+
+Take the following HTML:
+
+```html
+<html>
+    <head>
+        <my-element foo="bar"></my-element>
+    </head>
+</html>
+```
+
+The DOM will actually have the `my-element` node in the `body`. It looks like the original HTML has been:
+
+```html
+<html>
+    <head>
+    </head>
+    <body>
+        <my-element foo="bar"></my-element>
+    </body>
+</html>
+```
+
+In case you want to allow custom elements everywhere you can just provide the flag:
+
+```cs
+var parser = new HtmlParser(new HtmlParserOptions
+{
+    IsAcceptingCustomElementsEverywhere = true
+});
+var html = @"<html><head><my-element foo=""bar""></my-element></head></html>";
+IDocument document = parser.ParseDocument(html);
+Console.WriteLine(document.DocumentElement.ToHtml());
+```
+
+This will keep the `my-element` in the head. Just remember that the content, i.e., children, of the custom element need to follow the rules of the outer context.
+
+## `IsPreservingAttributeNames`
+
+This option allows you to keep the original attribute names. Usually, attribute names are normalized such that they only use lowercase characters.
+
+Take the following non-valid HTML from an Angular template:
+
+```html
+<div *ngIf="condition">Content to render when condition is true.</div>
+```
+
+Without this option the HTML DOM would look as if the original source has been:
+
+```html
+<div *ngif="condition">Content to render when condition is true.</div>
+```
+
+In contrast, you can use this option like:
+
+```cs
+var parser = new HtmlParser(new HtmlParserOptions
+{
+    IsPreservingAttributeNames = true
+});
+var html = @"<div *ngIf=""condition"">Content to render when condition is true.</div>";
+IDocument document = parser.ParseDocument(html);
+Console.WriteLine(document.DocumentElement.ToHtml());
+```
+
+This will keep the attribute as-is, i.e., like `*ngIf` instead of `*ngif`.

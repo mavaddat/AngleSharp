@@ -8,6 +8,7 @@ namespace AngleSharp.Core.Tests.Html
     using NUnit.Framework;
     using System;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -532,6 +533,41 @@ namespace AngleSharp.Core.Tests.Html
         }
 
         [Test]
+        public void HtmlSeoMetatags()
+        {
+            var content = @"<!doctype html>
+<html class=""no-js"" lang=""en"">
+<head>
+<meta property=""og:image"" content="""" />
+<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />
+</head><body></body></html>";
+
+            var doc = content.ToHtmlDocument();
+
+            var head = doc.Head;
+
+            var metas = head.QuerySelectorAll<IHtmlMetaElement>("meta");
+
+            foreach (var meta in metas)
+            {
+                if (meta.Name == "viewport")
+                {
+                    meta.Content = "changed";
+                }
+
+                if (meta.GetProperty() == "og:image")
+                {
+                    meta.Content = "image1.jpg";
+                }
+            }
+
+            var resultHtml = doc.DocumentElement.OuterHtml;
+
+            Assert.IsTrue(Regex.IsMatch(resultHtml, "<meta property=\\\"og:image\\\" content=\\\"image1.jpg\\\">"));
+            Assert.IsTrue(Regex.IsMatch(resultHtml, "<meta name=\\\"viewport\\\" content=\\\"changed\\\">"));
+        }
+
+        [Test]
         public void HtmlCharacterSerialization()
         {
             var content = @"<!doctype html><html><head></head><body></body></html>";
@@ -747,6 +783,16 @@ namespace AngleSharp.Core.Tests.Html
 
             Assert.NotNull(attr.OwnerElement);
             Assert.AreSame(div, attr.OwnerElement);
+        }
+
+        [Test]
+        public void SettingInnerHtmlOnNoScript_ShouldWork()
+        {
+            var document = "<body><noscript>Hi</noscript></body>".ToHtmlDocument();
+            var ns = document.QuerySelector("noscript");
+            ns.InnerHtml = "Hello World";
+
+            Assert.AreEqual("<body><noscript>Hello World</noscript></body>", document.Body.ToHtml());
         }
     }
 }

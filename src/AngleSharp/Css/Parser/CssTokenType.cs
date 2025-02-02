@@ -3,7 +3,7 @@
     /// <summary>
     /// An enumation of all possible tokens.
     /// </summary>
-    enum CssTokenType : byte
+    enum CssTokenType : System.Byte
     {
         /// <summary>
         /// A string token (usually in quotation marks).
@@ -38,9 +38,9 @@
         /// </summary>
         Column,
         /// <summary>
-        /// The descendent ( >> ) token.
+        /// The descendant ( >> ) token.
         /// </summary>
-        Descendent,
+        Descendant,
         /// <summary>
         /// The deep ( >>> ) token.
         /// </summary>

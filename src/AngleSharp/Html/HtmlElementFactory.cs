@@ -11,9 +11,11 @@ namespace AngleSharp.Html
     /// </summary>
     sealed class HtmlElementFactory : IElementFactory<Document, HtmlElement>
     {
+        internal static readonly HtmlElementFactory Instance = new();
+
         private delegate HtmlElement Creator(Document owner, String? prefix);
 
-        private readonly Dictionary<String, Creator> creators = new Dictionary<String, Creator>(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<String, Creator> creators = new(StringComparer.OrdinalIgnoreCase)
         {
             { TagNames.Div, (document, prefix) => new HtmlDivElement(document, prefix) },
             { TagNames.A, (document, prefix) => new HtmlAnchorElement(document, prefix) },
@@ -141,16 +143,16 @@ namespace AngleSharp.Html
             { TagNames.Data, (document, prefix) => new HtmlDataElement(document, prefix) },
             { TagNames.Plaintext, (document, prefix) => new HtmlSemanticElement(document, TagNames.Plaintext, prefix) },
             { TagNames.IsIndex, (document, prefix) => new HtmlIsIndexElement(document, prefix) },
-            { TagNames.Mark, (document, prefix) => new HtmlElement(document, TagNames.Mark) },
-            { TagNames.Sub, (document, prefix) => new HtmlElement(document, TagNames.Sub) },
-            { TagNames.Sup, (document, prefix) => new HtmlElement(document, TagNames.Sup) },
-            { TagNames.Dfn, (document, prefix) => new HtmlElement(document, TagNames.Dfn) },
-            { TagNames.Kbd, (document, prefix) => new HtmlElement(document, TagNames.Kbd) },
-            { TagNames.Var, (document, prefix) => new HtmlElement(document, TagNames.Var) },
-            { TagNames.Samp, (document, prefix) => new HtmlElement(document, TagNames.Samp) },
-            { TagNames.Abbr, (document, prefix) => new HtmlElement(document, TagNames.Abbr) },
-            { TagNames.Bdi, (document, prefix) => new HtmlElement(document, TagNames.Bdi) },
-            { TagNames.Bdo, (document, prefix) => new HtmlElement(document, TagNames.Bdo) },
+            { TagNames.Mark, (document, _) => new HtmlElement(document, TagNames.Mark) },
+            { TagNames.Sub, (document, _) => new HtmlElement(document, TagNames.Sub) },
+            { TagNames.Sup, (document, _) => new HtmlElement(document, TagNames.Sup) },
+            { TagNames.Dfn, (document, _) => new HtmlElement(document, TagNames.Dfn) },
+            { TagNames.Kbd, (document, _) => new HtmlElement(document, TagNames.Kbd) },
+            { TagNames.Var, (document, _) => new HtmlElement(document, TagNames.Var) },
+            { TagNames.Samp, (document, _) => new HtmlElement(document, TagNames.Samp) },
+            { TagNames.Abbr, (document, _) => new HtmlElement(document, TagNames.Abbr) },
+            { TagNames.Bdi, (document, _) => new HtmlElement(document, TagNames.Bdi) },
+            { TagNames.Bdo, (document, _) => new HtmlElement(document, TagNames.Bdo) },
         };
 
         /// <summary>

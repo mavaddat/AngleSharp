@@ -1,15 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Text;
+using System.Collections.Generic;
 using AngleSharp.Html.Parser;
+using AngleSharp.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+
+#if NETFRAMEWORK
 using CsQuery;
 using CsQuery.ExtensionMethods.Internal;
 using CsQuery.HtmlParser;
+#endif
+
 using HtmlAgilityPack;
 
 namespace AngleSharp.Benchmarks
 {
+    using System;
+
     [MemoryDiagnoser, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByParams), ShortRunJob]
     public class ParserBenchmark
     {
@@ -78,14 +84,16 @@ namespace AngleSharp.Benchmarks
 
         [ParamsSource(nameof(GetSources))] public UrlTest UrlTest { get; set; }
 
+#if NETFRAMEWORK
         [Benchmark]
         public void CsQuery()
         {
             var factory = new ElementFactory(DomIndexProviders.Simple);
 
             using var stream = UrlTest.Source.ToStream();
-            factory.Parse(stream, Encoding.UTF8);
+            factory.Parse(stream, System.Text.Encoding.UTF8);
         }
+#endif
 
         [Benchmark]
         public void HTMLAgilityPack()
@@ -98,6 +106,12 @@ namespace AngleSharp.Benchmarks
         public void AngleSharp()
         {
             angleSharpParser.ParseDocument(UrlTest.Source);
+        }
+
+        [Benchmark]
+        public void ArrayPool()
+        {
+            using var _ = angleSharpParser.ParseDocument(UrlTest.Source.AsMemory());
         }
     }
 }

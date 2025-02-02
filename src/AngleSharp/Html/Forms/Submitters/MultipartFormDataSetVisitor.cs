@@ -1,7 +1,6 @@
 namespace AngleSharp.Html.Forms.Submitters
 {
     using AngleSharp.Io.Dom;
-    using AngleSharp.Text;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -26,7 +25,7 @@ namespace AngleSharp.Html.Forms.Submitters
         {
             _htmlEncoder = htmlEncoder;
             _encoding = encoding;
-            _writers = new List<Action<StreamWriter>>();
+            _writers = [];
             _boundary = boundary;
         }
 

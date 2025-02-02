@@ -2,7 +2,7 @@
 
 # AngleSharp
 
-[![Build Status](https://github.com/AngleSharp/AngleSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/AngleSharp/AngleSharp/actions/workflows/ci.yml)
+[![CI](https://github.com/AngleSharp/AngleSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/AngleSharp/AngleSharp/actions/workflows/ci.yml)
 [![GitHub Tag](https://img.shields.io/github/tag/AngleSharp/AngleSharp.svg?style=flat-square)](https://github.com/AngleSharp/AngleSharp/releases)
 [![NuGet Count](https://img.shields.io/nuget/dt/AngleSharp.svg?style=flat-square)](https://www.nuget.org/packages/AngleSharp/)
 [![Issues Open](https://img.shields.io/github/issues/AngleSharp/AngleSharp.svg?style=flat-square)](https://github.com/AngleSharp/AngleSharp/issues)
@@ -12,7 +12,7 @@
 
 AngleSharp is a .NET library that gives you the ability to parse angle bracket based hyper-texts like HTML, SVG, and MathML. XML without validation is also supported by the library. An important aspect of AngleSharp is that CSS can also be parsed. The included parser is built upon the official W3C specification. This produces a perfectly portable HTML5 DOM representation of the given source code and ensures compatibility with results in evergreen browsers. Also standard DOM features such as `querySelector` or `querySelectorAll` work for tree traversal.
 
-:zap::zap: **Migrating from AngleSharp 0.9 to AngleSharp 0.10 or later**? Look at our [migration documentation](docs/tutorials/05-Migration.md). :zap::zap:
+:zap::zap: **Migrating from AngleSharp 0.9 to AngleSharp 0.10 or later** (incl. 1.0)? Look at our [migration documentation](docs/tutorials/05-Migration.md). :zap::zap:
 
 ## Key Features
 
@@ -44,6 +44,18 @@ var cells = document.QuerySelectorAll(cellSelector);
 var titles = cells.Select(m => m.TextContent);
 ```
 
+Or the same with explicit types:
+
+```cs
+IConfiguration config = Configuration.Default.WithDefaultLoader();
+string address = "https://en.wikipedia.org/wiki/List_of_The_Big_Bang_Theory_episodes";
+IBrowsingContext context = BrowsingContext.New(config);
+IDocument document = await context.OpenAsync(address);
+string cellSelector = "tr.vevent td:nth-child(3)";
+IHtmlCollection<IElement> cells = document.QuerySelectorAll(cellSelector);
+IEnumerable<string> titles = cells.Select(m => m.TextContent);
+```
+
 In the example we see:
 
 * How to setup the configuration for supporting document loading
@@ -58,7 +70,7 @@ Every collection in AngleSharp supports LINQ statements. AngleSharp also provide
 AngleSharp has been created as a .NET Standard 2.0 compatible library. This includes, but is not limited to:
 
 - .NET Core (2.0 and later)
-- .NET Framework (4.6 and later)
+- .NET Framework (4.6.2 and later)
 - Xamarin.Android (7.0 and 8.0)
 - Xamarin.iOS (10.0 and 10.14)
 - Xamarin.Mac (3.0 and 3.8)
@@ -127,7 +139,7 @@ Therefore we created a backing model via [Bountysource](https://salt.bountysourc
 
 ## Development
 
-AngleSharp is written in C# 9 and thus requires Roslyn as a compiler. Using an IDE like Visual Studio 2019+ is recommended on Windows. Alternatively, VSCode (with OmniSharp or another suitable Language Server Protocol implementation) should be the tool of choice on other platforms.
+AngleSharp is written in the most recent version of C# and thus requires Roslyn as a compiler. Using an IDE like Visual Studio 2019+ is recommended on Windows. Alternatively, VSCode (with OmniSharp or another suitable Language Server Protocol implementation) should be the tool of choice on other platforms.
 
 The code tries to be as clean as possible. Notably the following rules are used:
 
@@ -147,12 +159,4 @@ This project is supported by the [.NET Foundation](https://dotnetfoundation.org)
 
 ## License
 
-The MIT License (MIT)
-
-Copyright (c) 2013 - 2021 AngleSharp
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+AngleSharp is released using the MIT license. For more information see the [license file](./LICENSE).

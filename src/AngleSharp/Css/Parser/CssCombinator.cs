@@ -24,9 +24,9 @@ namespace AngleSharp.Css.Parser
         public static readonly CssCombinator Deep = new DeepCombinator();
 
         /// <summary>
-        /// The descendent operator (space, or alternatively >>).
+        /// The descendant operator (space, or alternatively >>).
         /// </summary>
-        public static readonly CssCombinator Descendent = new DescendentCombinator();
+        public static readonly CssCombinator Descendant = new DescendantCombinator();
 
         /// <summary>
         /// The adjacent sibling combinator +.
@@ -115,11 +115,11 @@ namespace AngleSharp.Css.Parser
             }
         }
 
-        private sealed class DescendentCombinator : CssCombinator
+        private sealed class DescendantCombinator : CssCombinator
         {
-            public DescendentCombinator()
+            public DescendantCombinator()
             {
-                Delimiter = CombinatorSymbols.Descendent;
+                Delimiter = CombinatorSymbols.Descendant;
                 Transform = el =>
                 {
                     var parents = new List<IElement>();
@@ -174,7 +174,7 @@ namespace AngleSharp.Css.Parser
                         return siblings;
                     }
 
-                    return new IElement[0];
+                    return Array.Empty<IElement>();
                 };
             }
         }
@@ -184,10 +184,19 @@ namespace AngleSharp.Css.Parser
             public NamespaceCombinator()
             {
                 Delimiter = CombinatorSymbols.Pipe;
-                Transform = el => Single(el);
+                Transform = Single;
             }
 
-            public override ISelector Change(ISelector selector) => new NamespaceSelector(selector.Text);
+            public override ISelector Change(ISelector selector)
+            {
+                var prefix = selector switch
+                {
+                    TypeSelector typeSelector => typeSelector.TypeName,
+                    _ => selector.Text
+                };
+
+                return new NamespaceSelector(prefix);
+            }
         }
 
         private sealed class ColumnCombinator : CssCombinator

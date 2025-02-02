@@ -889,7 +889,7 @@ namespace AngleSharp.Core.Tests.Library
             var cfg = Configuration.Default;
             var count = 0;
             var document = await BrowsingContext.New(cfg).OpenNewAsync();
-            document.DefaultView.SetTimeout(window => count++, 10);
+            document.DefaultView.SetTimeout(_ => count++, 10);
             await Task.Delay(100);
             Assert.AreEqual(1, count);
         }
@@ -900,7 +900,7 @@ namespace AngleSharp.Core.Tests.Library
             var cfg = Configuration.Default;
             var count = 0;
             var document = await BrowsingContext.New(cfg).OpenNewAsync();
-            var id = document.DefaultView.SetTimeout(window => count++, 10);
+            var id = document.DefaultView.SetTimeout(_ => count++, 10);
             document.DefaultView.ClearTimeout(id);
             await Task.Delay(100);
             Assert.AreEqual(0, count);
@@ -912,7 +912,7 @@ namespace AngleSharp.Core.Tests.Library
             var cfg = Configuration.Default;
             var count = 0;
             var document = await BrowsingContext.New(cfg).OpenNewAsync();
-            var id = document.DefaultView.SetInterval(window => count++, 10);
+            var id = document.DefaultView.SetInterval(_ => count++, 10);
             await Task.Delay(100);
             Assert.Greater(count, 1);
             document.DefaultView.ClearInterval(id);
@@ -924,7 +924,7 @@ namespace AngleSharp.Core.Tests.Library
             var cfg = Configuration.Default;
             var count = 0;
             var document = await BrowsingContext.New(cfg).OpenNewAsync();
-            var id = document.DefaultView.SetInterval(window => count++, 10);
+            var id = document.DefaultView.SetInterval(_ => count++, 10);
             document.DefaultView.ClearInterval(id);
             await Task.Delay(100);
             Assert.AreEqual(0, count);
@@ -1409,6 +1409,18 @@ namespace AngleSharp.Core.Tests.Library
             var doc = await parser.ParseDocumentAsync(content);
             var el = doc.GetElementsByTagName("iframe")[0];
             el.RemoveAttribute("src");
+        }
+
+        [Test]
+        public async Task SettingTemplateContentUsingInnerHtmlWorks_Issue1072()
+        {
+            var content = "<body>";
+            var parser = new HtmlParser();
+            var doc = await parser.ParseDocumentAsync(content);
+            var template = doc.CreateElement<IHtmlTemplateElement>();
+            template.InnerHtml = "<div></div>";
+            Assert.IsNotNull(template.Content.FirstChild);
+            Assert.AreEqual(0, template.ChildNodes.Length);
         }
     }
 }

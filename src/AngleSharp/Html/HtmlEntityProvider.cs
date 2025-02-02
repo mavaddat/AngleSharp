@@ -3,24 +3,38 @@ namespace AngleSharp.Html
     using AngleSharp.Dom;
     using System;
     using System.Collections.Generic;
+    using Common;
+    using System.Linq;
 
     /// <summary>
     /// Represents the list of all Html entities.
     /// </summary>
-    public sealed class HtmlEntityProvider : IEntityProvider
+    public sealed class HtmlEntityProvider : IEntityProvider, IReverseEntityProvider, IEntityProviderExtended
     {
         #region Fields
 
-        private readonly Dictionary<Char, Dictionary<String, String>> _entities;
+        private readonly Dictionary<Char, Dictionary<StringOrMemory, String>> _entities;
 
         #endregion
 
         #region Instance
 
+        private static readonly HtmlEntityProvider Instance = new ();
+
         /// <summary>
         /// Gets the instance to resolve entities.
         /// </summary>
-        public static readonly IEntityProvider Resolver = new HtmlEntityProvider();
+        public static readonly IEntityProvider Resolver = Instance;
+
+        /// <summary>
+        /// Gets the instance to resolve entities using <see cref="StringOrMemory"/>
+        /// </summary>
+        public static readonly IEntityProviderExtended ResolverExtended = Instance;
+
+        /// <summary>
+        /// Gets the instance to reverse resolve entities.
+        /// </summary>
+        public static IReverseEntityProvider ReverseResolver => Instance;
 
         #endregion
 
@@ -28,7 +42,7 @@ namespace AngleSharp.Html
 
         private HtmlEntityProvider()
         {
-            _entities = new Dictionary<Char, Dictionary<String, String>>
+            var entities = new Dictionary<Char, Dictionary<String, String>>
             {
                 { 'a', GetSymbolLittleA() },
                 { 'A', GetSymbolBigA() },
@@ -83,6 +97,16 @@ namespace AngleSharp.Html
                 { 'z', GetSymbolLittleZ() },
                 { 'Z', GetSymbolBigZ() },
             };
+
+            _entities = entities
+                .ToDictionary(
+                    k => k.Key,
+                    v => v.Value.ToDictionary(
+                        k => new StringOrMemory(k.Key),
+                        v => v.Value,
+                        OrdinalStringOrMemoryComparer.Instance)
+                );
+
         }
 
         #endregion
@@ -2540,14 +2564,55 @@ namespace AngleSharp.Html
         /// <returns>The string with the symbol or null.</returns>
         public String? GetSymbol(String name)
         {
-            var symbol = default(String);
-
-            if (!String.IsNullOrEmpty(name) && _entities.TryGetValue(name[0], out var symbols))
+            if (!String.IsNullOrEmpty(name) && _entities.TryGetValue(name[0], out var symbols) && symbols.TryGetValue(name.AsMemory(), out var symbol))
             {
-                symbols.TryGetValue(name, out symbol);
+                return symbol;
             }
 
-            return symbol;
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a symbol (that ended with a semicolon) specified by its entity
+        /// </summary>
+        /// <param name="name">
+        /// The name of the entity, specified by &amp;NAME; in the Html code.
+        /// </param>
+        /// <returns>The string with the symbol or null.</returns>
+        public String? GetSymbol(StringOrMemory name)
+        {
+            if (name.Memory.Length != 0 && _entities.TryGetValue(name[0], out var symbols))
+            {
+                if (symbols.TryGetValue(name, out var symbol))
+                {
+                    return symbol;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the name of a symbol specified by its value. In case of
+        /// ambiguity the first name (alphabetically ordered) will be
+        /// returned.
+        /// </summary>
+        /// <param name="symbol">The symbol's value.</param>
+        /// <returns>The name of the symbol or null.</returns>
+        public String? GetName(String symbol)
+        {
+            foreach (var entityMap in _entities)
+            {
+                foreach (var entity in entityMap.Value)
+                {
+                    if (entity.Value == symbol)
+                    {
+                        return entity.Key.ToString();
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -2589,7 +2654,7 @@ namespace AngleSharp.Html
         /// <param name="code">The code to examine.</param>
         /// <returns>True if the code is in the table, else false.</returns>
         public static Boolean IsInCharacterTable(Int32 code) =>
-            /* 
+            /*
              * If that number is one of the numbers in the first column of the
              * following table, then this is a parse error. Find the row with that
              * number in the first column, and return a character token for the
@@ -2613,7 +2678,7 @@ namespace AngleSharp.Html
         public static String? GetSymbolFromTable(Int32 code)
         {
             switch (code)
-            { 
+            {
                 case 0x00:
                     return Convert(0xfffd);
                 case 0x0D:
@@ -2621,18 +2686,18 @@ namespace AngleSharp.Html
                 case 0x80:
                     return Convert(0x20ac);
                 case 0x81:
-                    return Convert(0x81);;
+                    return Convert(0x81);
                 case 0x82:
                     return Convert(0x201a);
-                case 0x83: 	
+                case 0x83:
                     return Convert(0x192);
-                case 0x84:  
+                case 0x84:
                     return Convert(0x201e);
                 case 0x85:
                     return Convert(0x2026);
-                case 0x86: 	
+                case 0x86:
                     return Convert(0x2020);
-                case 0x87: 
+                case 0x87:
                     return Convert(0x2021);
                 case 0x88:
                     return Convert(0x02C6);
@@ -2648,39 +2713,39 @@ namespace AngleSharp.Html
                     return Convert(0x008D);
                 case 0x8E:
                     return Convert(0x017D);
-                case 0x8F: 	
+                case 0x8F:
                     return Convert(0x008F);
                 case 0x90:
                     return Convert(0x0090);
-                case 0x91: 	
+                case 0x91:
                     return Convert(0x2018);
-                case 0x92: 	
+                case 0x92:
                     return Convert(0x2019);
-                case 0x93: 	
+                case 0x93:
                     return Convert(0x201C);
-                case 0x94: 	
+                case 0x94:
                     return Convert(0x201D);
-                case 0x95: 	
+                case 0x95:
                     return Convert(0x2022);
-                case 0x96: 	
+                case 0x96:
                     return Convert(0x2013);
-                case 0x97: 	
+                case 0x97:
                     return Convert(0x2014);
-                case 0x98: 	
+                case 0x98:
                     return Convert(0x02DC);
-                case 0x99: 	
+                case 0x99:
                     return Convert(0x2122);
-                case 0x9A: 	
+                case 0x9A:
                     return Convert(0x0161);
-                case 0x9B: 	
+                case 0x9B:
                     return Convert(0x203A);
-                case 0x9C: 	
+                case 0x9C:
                     return Convert(0x0153);
                 case 0x9D:
                     return Convert(0x009D);
-                case 0x9E: 	
+                case 0x9E:
                     return Convert(0x017E);
-                case 0x9F: 
+                case 0x9F:
                     return Convert(0x0178);
                 default:
                     return null;

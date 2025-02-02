@@ -8,11 +8,11 @@ namespace AngleSharp.Html.Parser.Tokens
     /// <summary>
     /// Class for StartTagToken and EndTagToken.
     /// </summary>
-    public sealed class HtmlTagToken : HtmlToken, ISourceReference
+    public sealed class HtmlTagToken : HtmlToken
     {
         #region Fields
 
-        private readonly List<HtmlAttributeToken> _attributes = new List<HtmlAttributeToken>();
+        private readonly List<HtmlAttributeToken> _attributes = [];
         private Boolean _selfClosing;
 
         #endregion

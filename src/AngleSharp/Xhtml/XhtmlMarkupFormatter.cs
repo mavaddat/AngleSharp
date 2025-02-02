@@ -18,6 +18,40 @@ namespace AngleSharp.Xhtml
 
         #endregion
 
+        #region Private fields
+
+        private readonly Boolean _emptyTagsToSelfClosing;
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Default constructor for <see cref="XhtmlMarkupFormatter"/>
+        /// </summary>
+        public XhtmlMarkupFormatter() : this(true)
+        {
+        }
+
+        /// <summary>
+        /// Constructor for <see cref="XhtmlMarkupFormatter"/>
+        /// </summary>
+        /// <param name="emptyTagsToSelfClosing">
+        /// Specify if empty elements like &lt;div&gt;&lt;/div&gt;
+        /// should be converted to self-closing ones like &lt;div /&gt;
+        /// </param>
+        public XhtmlMarkupFormatter(Boolean emptyTagsToSelfClosing)
+        {
+            _emptyTagsToSelfClosing = emptyTagsToSelfClosing;
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Gets the status if empty tags will be self-closed or not.
+        /// </summary>
+        public Boolean IsSelfClosingEmptyTags => _emptyTagsToSelfClosing;
+
         #region Methods
 
         /// <inheritdoc />
@@ -26,7 +60,7 @@ namespace AngleSharp.Xhtml
             var prefix = element.Prefix;
             var name = element.LocalName;
             var tag = !String.IsNullOrEmpty(prefix) ? prefix + ":" + name : name;
-            return (selfClosing || !element.HasChildNodes) ? String.Empty : String.Concat("</", tag, ">");
+            return (selfClosing || _emptyTagsToSelfClosing && !element.HasChildNodes) ? String.Empty : String.Concat("</", tag, ">");
         }
 
         /// <inheritdoc />
@@ -64,7 +98,7 @@ namespace AngleSharp.Xhtml
                 temp.Append(' ').Append(Attribute(attribute));
             }
 
-            if (selfClosing || !element.HasChildNodes)
+            if (selfClosing || _emptyTagsToSelfClosing && !element.HasChildNodes)
             {
                 temp.Append(" /");
             }
@@ -168,9 +202,9 @@ namespace AngleSharp.Xhtml
         /// <summary>
         /// Gets the local name using the XML namespace prefix if required.
         /// </summary>
-        /// <param name="name">The name to be properly represented.</param>
+        /// <param name="localName">The name to be properly represented.</param>
         /// <returns>The string representation.</returns>
-        public static String XmlNamespaceLocalName(String name) => !name.Is(NamespaceNames.XmlNsPrefix) ? String.Concat(NamespaceNames.XmlNsPrefix, ":") : name;
+        public static String XmlNamespaceLocalName(String localName) => !localName.Is(NamespaceNames.XmlNsPrefix) ? String.Concat(NamespaceNames.XmlNsPrefix, Symbols.Colon, localName) : localName;
 
         #endregion
     }
