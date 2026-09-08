@@ -567,18 +567,11 @@ namespace AngleSharp.Dom
         {
             if (element is IHtmlAnchorElement anchor)
             {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && CheckVisited(anchor);
+                return element.HasAttribute(null, AttributeNames.Href) && CheckVisited(anchor);
             }
             else if (element is IHtmlAreaElement area)
             {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && CheckVisited(area);
-            }
-            else if (element is IHtmlLinkElement link)
-            {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && CheckVisited(link);
+                return element.HasAttribute(null, AttributeNames.Href) && CheckVisited(area);
             }
 
             return false;
@@ -617,18 +610,11 @@ namespace AngleSharp.Dom
         {
             if (element is IHtmlAnchorElement anchor)
             {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !anchor.IsVisited();
+                return element.HasAttribute(null, AttributeNames.Href) && !anchor.IsVisited();
             }
             else if (element is IHtmlAreaElement area)
             {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !area.IsVisited();
-            }
-            else if (element is IHtmlLinkElement link)
-            {
-                var href = element.GetAttribute(null, AttributeNames.Href);
-                return !String.IsNullOrEmpty(href) && !link.IsVisited();
+                return element.HasAttribute(null, AttributeNames.Href) && !area.IsVisited();
             }
 
             return false;
