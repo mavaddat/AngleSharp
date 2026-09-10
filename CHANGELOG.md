@@ -10,6 +10,7 @@ Released on ?
 Released on Saturday, September 5 2026
 
 - Improved AngleSharp's test website
+- Fixed HTML-namespace element creation losing local-name case (#1327)
 - Fixed script data escaped state potentially not bouncing back correctly
 - Added the `DomSameObject` annotation for the respective IDL members (#1314) @lahma
 - Added the `DomReturnType` annotation for methods returning a different IDL type (#1318)
