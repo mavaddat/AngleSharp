@@ -8,6 +8,7 @@ Released on ?
 
 Released on Saturday, September 5 2026
 
+- Fixed HTML hyperlink pseudo-classes omitting empty `href` and matching `link` elements (#1337)
 - Improved AngleSharp's test website
 - Fixed script data escaped state potentially not bouncing back correctly
 - Added the `DomSameObject` annotation for the respective IDL members (#1314) @lahma
