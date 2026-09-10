@@ -1,3 +1,9 @@
+# 1.8.1
+
+Released on ?
+
+- Updated `DoFocus` and `DoBlur` to apply to form elements
+
 # 1.8.0
 
 Released on Saturday, September 5 2026
