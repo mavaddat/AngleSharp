@@ -1095,7 +1095,7 @@ namespace AngleSharp.Dom
             if (localName.IsXmlName())
             {
                 var factory = _context.GetFactory<IElementFactory<Document, HtmlElement>>();
-                var element = factory.Create(this, localName);
+                var element = factory.Create(this, localName.HtmlLower());
                 element.SetupElement();
                 return element;
             }
