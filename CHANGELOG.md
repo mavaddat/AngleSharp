@@ -1,16 +1,16 @@
 # 1.8.1
 
-Released on ?
+Released on Thursday, September 10 2026
 
 - Updated `DoFocus` and `DoBlur` to apply to form elements
 - Fixed HTML hyperlink pseudo-classes omitting empty `href` and matching `link` elements (#1337)
+- Fixed HTML-namespace element creation losing local-name case (#1327)
 
 # 1.8.0
 
 Released on Saturday, September 5 2026
 
 - Improved AngleSharp's test website
-- Fixed HTML-namespace element creation losing local-name case (#1327)
 - Fixed script data escaped state potentially not bouncing back correctly
 - Added the `DomSameObject` annotation for the respective IDL members (#1314) @lahma
 - Added the `DomReturnType` annotation for methods returning a different IDL type (#1318)
