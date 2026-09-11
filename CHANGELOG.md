@@ -1,3 +1,9 @@
+# 1.8.2
+
+Released on Friday, September 11 2026
+
+- Fixed vulnerability via SVG style serialization (GHSA-cgp3-27rh-pcp2)
+
 # 1.8.1
 
 Released on Thursday, September 10 2026

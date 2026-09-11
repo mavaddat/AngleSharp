@@ -956,6 +956,16 @@ nobr should have closed the div inside it implicitly. </b><pre>A pre tag outside
             Assert.AreEqual("<html><head></head><body><svg><template>&gt;html&gt;<desc><template>&gt;<p>p</p><pre></pre></template></desc></template></svg></body></html>", document.ToHtml());
         }
 
+        [Test]
+        public void SvgStyleEndTagAndHtmlTagTextShouldStayEscaped___GHSA_cgp3_27rh_pcp2()
+        {
+            var source = "<svg><style>&lt;/style>&lt;img src=x onerror=window.__anglesharpMxss=1></style></svg>";
+            var document = source.ToHtmlDocument();
+
+            Assert.IsNotNull(document);
+            Assert.AreEqual("<svg><style>&lt;/style&gt;&lt;img src=x onerror=window.__anglesharpMxss=1&gt;</style></svg>", document.Body.FirstElementChild.ToHtml());
+        }
+
         // [Test]
         // public void HeisenbergAlgorithmShouldNotBeOutOfBounds_Issue893()
         // {
