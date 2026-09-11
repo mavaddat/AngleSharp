@@ -2,6 +2,7 @@
 
 Released on Friday, September 11 2026
 
+- Improved performance of parser attribute duplication check
 - Fixed vulnerability via SVG style serialization (GHSA-cgp3-27rh-pcp2)
 
 # 1.8.1

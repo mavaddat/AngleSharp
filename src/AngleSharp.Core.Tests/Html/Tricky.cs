@@ -5,6 +5,7 @@ namespace AngleSharp.Core.Tests.Html
     using NUnit.Framework;
     using System;
     using System.IO;
+    using System.Linq;
 
     /// <summary>
     /// Tests from https://github.com/html5lib/html5lib-tests:
@@ -909,6 +910,29 @@ nobr should have closed the div inside it implicitly. </b><pre>A pre tag outside
             using var memoryStream = new MemoryStream(bs, false);
             var document = memoryStream.ToHtmlDocument();
             Assert.IsNotNull(document);
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(4)]
+        [TestCase(8)]
+        [TestCase(16)]
+        [TestCase(128)]
+        [TestCase(1_000)]
+        [TestCase(16_000)]
+        public void HtmlElementCanHaveManyAttributes(Int32 count)
+        {
+            const String alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+            var attributes = String.Join(' ', Enumerable.Range(0, count).Select(i =>
+                $"{alphabet[i / 1296 % 36]}{alphabet[i / 36 % 36]}{alphabet[i % 36]}"));
+            var input = "<div " + attributes + ">";
+            var document = input.ToHtmlDocument();
+            var element = document.Body.FirstElementChild;
+
+            Assert.IsNotNull(element);
+            Assert.AreEqual(count, element.Attributes.Length);
+            Assert.IsTrue(element.HasAttribute("aaa"));
+            Assert.IsTrue(element.HasAttribute($"{alphabet[(count - 1) / 1296 % 36]}{alphabet[(count - 1) / 36 % 36]}{alphabet[(count - 1) % 36]}"));
         }
 
         [Test]
