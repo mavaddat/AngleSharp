@@ -923,7 +923,7 @@ nobr should have closed the div inside it implicitly. </b><pre>A pre tag outside
         public void HtmlElementCanHaveManyAttributes(Int32 count)
         {
             const String alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
-            var attributes = String.Join(' ', Enumerable.Range(0, count).Select(i =>
+            var attributes = String.Join(" ", Enumerable.Range(0, count).Select(i =>
                 $"{alphabet[i / 1296 % 36]}{alphabet[i / 36 % 36]}{alphabet[i % 36]}"));
             var input = "<div " + attributes + ">";
             var document = input.ToHtmlDocument();
