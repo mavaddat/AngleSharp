@@ -49,7 +49,14 @@ namespace AngleSharp.Benchmarks
             "#title",
             ".note",
             // No match at all: forces a complete traversal even for QuerySelector.
-            "div.no-such-class-anywhere"
+            "div.no-such-class-anywhere",
+            // A compound selector with several simple-selector parts chained on one element -
+            // exercises CompoundSelector.Match/Specificity across all four parts per candidate.
+            "a.url.fn[href]",
+            // A selector list (ListSelector) with branches of differing specificity - exercises
+            // ListSelector.Match plus, for anything that reads it (e.g. IMultiSelector.
+            // GetMatchingSelector, or a host cascade), Selectors.Specificity across every branch.
+            "h1, h2, h3, .toc, .note"
         };
 
         [Benchmark]
