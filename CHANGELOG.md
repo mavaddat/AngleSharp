@@ -3,6 +3,7 @@
 Released on Friday, September 11 2026
 
 - Fixed `Document.Forms` allocating a new collection instance per read, contradicting its own `[DomSameObject]` contract
+- Improved id/name lookup on collections (`document.forms["x"]`, `form.elements["x"]`, ...) to enumerate the underlying sequence once instead of twice
 - Improved performance of parser attribute duplication check
 - Fixed vulnerability via SVG style serialization (GHSA-cgp3-27rh-pcp2)
 
