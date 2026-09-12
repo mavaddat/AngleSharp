@@ -52,6 +52,7 @@ namespace AngleSharp.Dom
         private HtmlCollection<IElement>? _children;
         private DomImplementation? _implementation;
         private IStringList? _styleSheetSets;
+        private HtmlCollection<IHtmlFormElement>? _forms;
         private HtmlCollection<IHtmlImageElement>? _images;
         private HtmlCollection<IHtmlScriptElement>? _scripts;
         private HtmlCollection<IHtmlEmbedElement>? _plugins;
@@ -687,7 +688,7 @@ namespace AngleSharp.Dom
         public String Url => _location.Href;
 
         /// <inheritdoc />
-        public IHtmlCollection<IHtmlFormElement> Forms => new HtmlCollection<IHtmlFormElement>(this);
+        public IHtmlCollection<IHtmlFormElement> Forms => _forms ??= new HtmlCollection<IHtmlFormElement>(this);
 
         /// <inheritdoc />
         public IHtmlCollection<IHtmlImageElement> Images => _images ??= new HtmlCollection<IHtmlImageElement>(this);
